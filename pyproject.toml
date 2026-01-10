@@ -1,0 +1,20 @@
+[project]
+name = "ecs-python"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "ECS framework for python"
+readme = "README.md"
+dependencies = [
+  "numpy>=2.2.3",
+]
+
+[dependency-groups]
+dev = [
+  "black",
+  "isort",
+  "flake8",
+  "pytest",
+  "pytest-mock",
+  "pre-commit",
+  "coverage"
+]
