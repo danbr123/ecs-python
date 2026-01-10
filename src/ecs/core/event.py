@@ -1,5 +1,5 @@
 from typing import Callable, Dict, List, Optional, Type, TypeVar
-from weakref import ref, WeakMethod
+from weakref import WeakMethod, ref
 
 
 class Event:

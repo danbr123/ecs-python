@@ -6,13 +6,17 @@ from .component import Component
 
 
 class Archetype:
-    def __init__(self, components: list[Type[Component]], signature: int, initial_capacity: int = 256):
+    def __init__(
+        self,
+        components: list[Type[Component]],
+        signature: int,
+        initial_capacity: int = 256,
+    ):
         self.signature = signature
         self.components = components
         self._capacity = initial_capacity
         self.storage: dict[Type[Component], np.ndarray] = {
-            c: np.zeros((self._capacity, *c.shape), dtype=c.dtype)
-            for c in components
+            c: np.zeros((self._capacity, *c.shape), dtype=c.dtype) for c in components
         }
         self.entity_ids = np.full(self._capacity, -1, dtype=np.int32)
         self._length = 0
@@ -23,12 +27,12 @@ class Archetype:
     def increase_capacity(self):
         new_capacity = self._capacity * 2
         new_entities = np.full(new_capacity, -1, dtype=np.int32)
-        new_entities[:self._capacity] = self.entity_ids[:self._capacity]
+        new_entities[: self._capacity] = self.entity_ids[: self._capacity]
         self.entity_ids = new_entities
 
         for comp, data in self.storage.items():
             _new_data = np.zeros((new_capacity, *data.shape[1:]), dtype=data.dtype)
-            _new_data[:self._capacity] = data[:self._capacity]
+            _new_data[: self._capacity] = data[: self._capacity]
             self.storage[comp] = _new_data
         self._capacity = new_capacity
 
@@ -62,4 +66,3 @@ class Archetype:
         self.entity_ids[last_id] = -1
         self._length -= 1
         return moved_entity
-

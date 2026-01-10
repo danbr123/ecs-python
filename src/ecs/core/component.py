@@ -1,8 +1,7 @@
 from abc import ABC
+from typing import Type
 
 import numpy as np
-
-from typing import Type
 
 
 class Component(ABC):
@@ -23,9 +22,7 @@ class ComponentRegistry:
             self._next_bit <<= 1
         return self._component_bits[comp_type]
 
-    def get_signature(
-        self, components: list[Type[Component]]
-    ) -> int:
+    def get_signature(self, components: list[Type[Component]]) -> int:
         """Get unique signature for a composition of components.
 
         The signature is only relevant for a specific registry. Each may have a

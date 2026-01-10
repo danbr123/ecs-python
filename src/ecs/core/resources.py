@@ -76,6 +76,7 @@ class Resources(MutableMapping[str, Any]):
 @dataclass(frozen=True)
 class ResourceView:
     """A namespaced view over Resources: keys are stored as 'prefix.key'"""
+
     _root: Resources
     _prefix: str
 

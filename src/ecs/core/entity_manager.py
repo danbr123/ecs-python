@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Type, Any, Callable
+from typing import Any, Callable, Type
 
 import numpy as np
 
@@ -9,7 +9,11 @@ from .component import Component, ComponentRegistry
 
 class EntityManager:
 
-    def __init__(self, component_registry: ComponentRegistry, on_arch_created: Callable[[Archetype], Any]):
+    def __init__(
+        self,
+        component_registry: ComponentRegistry,
+        on_arch_created: Callable[[Archetype], Any],
+    ):
         self.next_id = 0
         self._ids = deque()
         self.entities_map: dict[int, tuple[Archetype, int]] = {}
@@ -31,7 +35,7 @@ class EntityManager:
                 f"but got {val_array.shape}."
             )
 
-        if not np.can_cast(val_array.dtype, comp_type.dtype, casting='same_kind'):
+        if not np.can_cast(val_array.dtype, comp_type.dtype, casting="same_kind"):
             raise TypeError(
                 f"Component {comp_type.__name__} expects dtype {comp_type.dtype}, "
                 f"but got incompatible dtype {val_array.dtype}."

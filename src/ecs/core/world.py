@@ -1,7 +1,8 @@
-from typing import Any, Type, Optional
+from typing import Any, Optional, Type
 
 from src.ecs import Resources
-from .component import ComponentRegistry, Component
+
+from .component import Component, ComponentRegistry
 from .entity_manager import EntityManager
 from .event import EventBus
 from .query import QueryManager
@@ -16,7 +17,8 @@ class World:
         self.registry = ComponentRegistry()
         self.query_manager = QueryManager(self.registry)
         self.entities = EntityManager(
-            self.registry, on_arch_created=self.query_manager.on_arch_created)
+            self.registry, on_arch_created=self.query_manager.on_arch_created
+        )
         self.resources = Resources()
 
     def create_entity(self, components_data: dict[Type[Component], Any]) -> int:
@@ -37,8 +39,9 @@ class World:
     def set_component(self, entity_id: int, comp_type: Type[Component], value: Any):
         self.entities.set_component(entity_id, comp_type, value)
 
-    def query(self, include: list[Type[Component]],
-              exclude: list[Type[Component]] = None):
+    def query(
+        self, include: list[Type[Component]], exclude: list[Type[Component]] = None
+    ):
         q, is_new = self.query_manager.get_query(include, exclude)
         if is_new:
             for arch in self.entities.archetypes.values():

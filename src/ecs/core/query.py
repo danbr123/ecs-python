@@ -1,11 +1,16 @@
-from typing import Type, Optional
+from typing import Optional, Type
 
 from .archetype import Archetype
-from .component import ComponentRegistry, Component
+from .component import Component, ComponentRegistry
 
 
 class Query:
-    def __init__(self, include: list[Type[Component]], exclude: Optional[list[Type[Component]]], registry: ComponentRegistry):
+    def __init__(
+        self,
+        include: list[Type[Component]],
+        exclude: Optional[list[Type[Component]]],
+        registry: ComponentRegistry,
+    ):
         self.include = include
         if exclude is None:
             exclude = []
@@ -22,10 +27,7 @@ class Query:
 
     def fetch(self):
         for arch in self.matches:
-            yield {
-                t: arch.storage[t][:len(arch)]
-                for t in self.include
-            }
+            yield {t: arch.storage[t][: len(arch)] for t in self.include}
 
 
 class QueryManager:
@@ -33,13 +35,16 @@ class QueryManager:
     def __init__(self, component_registry: ComponentRegistry):
         self.registry = component_registry
         self._queries: dict[
-            tuple[frozenset[Type[Component]], frozenset[Type[Component]]], Query] = {}
+            tuple[frozenset[Type[Component]], frozenset[Type[Component]]], Query
+        ] = {}
 
     def on_arch_created(self, arch):
         for query in self._queries.values():
             query.try_add(arch)
 
-    def get_query(self, include: list[Type[Component]], exclude: Optional[list[Type[Component]]]) -> tuple[Query, bool]:
+    def get_query(
+        self, include: list[Type[Component]], exclude: Optional[list[Type[Component]]]
+    ) -> tuple[Query, bool]:
         key = (frozenset(include), frozenset(exclude or []))
         if key in self._queries:
             return self._queries[key], False
