@@ -29,7 +29,9 @@ class Query:
 
     def fetch(self):
         for arch in self.matches:
-            yield arch.entity_ids[:len(arch)], {t: arch.storage[t][: len(arch)] for t in self.include}
+            yield arch.entity_ids[: len(arch)], {
+                t: arch.storage[t][: len(arch)] for t in self.include
+            }
 
 
 class QueryManager:

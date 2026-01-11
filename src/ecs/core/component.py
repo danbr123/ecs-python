@@ -48,7 +48,9 @@ class ComponentRegistry:
         self._cache[cache_key] = signature
         return signature
 
-    def sort_components(self, components: list[Type[Component]]) -> list[Type[Component]]:
+    def sort_components(
+        self, components: list[Type[Component]]
+    ) -> list[Type[Component]]:
         """Sort components according ton their associated bit and de-duplicate"""
         components = set(components)
         return sorted(components, key=lambda x: self.get_bit(x))

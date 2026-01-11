@@ -1,10 +1,10 @@
 from typing import Any, Optional, Type
 
-from .resources import Resources
 from .component import Component, ComponentRegistry
 from .entity_manager import EntityManager
 from .event import EventBus
 from .query import QueryManager
+from .resources import Resources
 from .system import System
 
 

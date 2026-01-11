@@ -1,4 +1,3 @@
-from collections import deque
 from typing import Any, Callable, Type
 
 import numpy as np
@@ -23,8 +22,9 @@ class EntityManager:
         Args:
             component_registry (ComponentRegistry): component registry for archetype
                 signature calculation and quick lookup
-            on_arch_created (Callable[[Archetype], Any]): hook that is called when creating
-                a new archetype - this should be used to update all existing queries.
+            on_arch_created (Callable[[Archetype], Any]): hook that is called when
+                creating a new archetype - this should be used to update all existing
+                queries.
         """
         self.next_id = 0
         self.entities_map: dict[int, tuple[Archetype, int]] = {}
@@ -40,8 +40,9 @@ class EntityManager:
 
         val_array = np.asanyarray(value)
 
-        if ((comp_type.shape != (1,) and val_array.shape != comp_type.shape)
-                or (comp_type.shape == (1,) and val_array.shape not in [(1,), ()])):
+        if (comp_type.shape != (1,) and val_array.shape != comp_type.shape) or (
+            comp_type.shape == (1,) and val_array.shape not in [(1,), ()]
+        ):
             raise ValueError(
                 f"Component {comp_type.__name__} expects shape {comp_type.shape}, "
                 f"but got {val_array.shape}."
@@ -147,7 +148,9 @@ class EntityManager:
 
         arch, row = self.entities_map[entity_id]
         if comp_type not in arch.components:
-            raise ValueError(f"entity {entity_id} does not have component {comp_type.__name__}")
+            raise ValueError(
+                f"entity {entity_id} does not have component {comp_type.__name__}"
+            )
         return arch.storage[comp_type][row]
 
     def set_component(self, entity_id: int, comp_type: Type[Component], value: Any):
