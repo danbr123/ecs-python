@@ -110,8 +110,7 @@ class EventBus:
         self._next_async_queue.append(event)
 
     def process_async(self) -> None:
-        """
-        Process all queued asynchronous events.
+        """Process all queued asynchronous events.
 
         Uses double buffering to ensure events published in the current frame
         aren't processed until the next update cycle.

@@ -8,12 +8,12 @@ T = TypeVar("T")
 
 
 class Resources(MutableMapping[str, Any]):
-    """
-    Thin wrapper around a dict for ECS 'global state' (render view, camera,
-    event queues, input snapshot, etc.). Provides:
-      - Stable API boundary (swap internals later without touching systems).
-      - Optional typed getters with runtime validation.
-      - Namespacing via dot-keys ("render.view", "audio.volume").
+    """Thin wrapper around a dict for ECS 'global state'
+
+    can be used to store states such as render view, camera, event queues,
+    input snapshot, etc.
+
+    The cass provides namespacing via dot-keys ("render.view", "audio.volume").
     """
 
     __slots__ = ("_data",)

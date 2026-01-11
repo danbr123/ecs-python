@@ -54,7 +54,38 @@ class EntityManager:
                 f"but got incompatible dtype {val_array.dtype}."
             )
 
+    def _assign_id(self):
+        """Assign unique entity id"""
+        ret = self.next_id
+        self.next_id += 1
+        return ret
+
+    def _remove_and_swap(self, arch: Archetype, row: int):
+        """Remove entity from archetype by row
+
+        After the removal, the archetype fills the empty row with
+        a different entity id to maintain density, so the function
+        also updates the row in the entities_map.
+
+        Args:
+            arch (Archetype): the archetype to remove the entity from
+            row (int): the *row* of the entity to remove from the archetype
+        """
+        swapped = arch.remove_entity(row)
+        if swapped != -1:
+            self.entities_map[swapped] = (arch, row)
+
     def get_archetype(self, components: list[Type[Component]]) -> Archetype:
+        """Get archetype for a given component composition
+
+        If an archetype does not exist yet, create it.
+        Use the archetype signature for efficient lookup.
+
+        Args:
+            components (list[Type[Component]]): list of components
+        Returns:
+            archetype (Archetype): an archetype that matches the component composition
+        """
         components = self.registry.sort_components(components)
         sig = self.registry.get_signature(components)
         if sig not in self.archetypes:
@@ -63,23 +94,19 @@ class EntityManager:
             self.archetypes[sig] = new_arch
         return self.archetypes[sig]
 
-    def assign_id(self):
-        ret = self.next_id
-        self.next_id += 1
-        return ret
-
-    def _remove_and_swap(self, arch: Archetype, row: int):
-        swapped = arch.remove_entity(row)
-        if swapped != -1:
-            self.entities_map[swapped] = (arch, row)
-
     def add(self, components_data: dict[Type[Component], Any]) -> int:
+        """Create a new entity with given components
+
+        Calculate the matching archetype for the entity based on the components
+        composition, then insert the entity and its component data to the
+        archetype storage.
+        """
         for comp_type, value in components_data.items():
             self._validate_data(comp_type, value)
 
         comp_types = list(components_data.keys())
         archetype = self.get_archetype(comp_types)
-        eid = self.assign_id()
+        eid = self._assign_id()
         row = archetype.allocate(eid)
         for comp_type, value in components_data.items():
             archetype.storage[comp_type][row] = value
@@ -87,13 +114,51 @@ class EntityManager:
         return eid
 
     def remove(self, entity_id):
+        """Remove an entity
+
+        Remove the entity from its archetype and from the entities_map.
+        if the entity doesn't exist - raise an exception.
+
+        Args:
+            entity_id (int): the entity to remove
+        Returns:
+            entity_id (int): the removed entity
+        """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
         arch, row = self.entities_map.pop(entity_id)
         self._remove_and_swap(arch, row)
         return entity_id
 
-    def add_component(self, entity_id, components_data: dict[Type[Component], Any]):
+    def add_components(self, entity_id, components_data: dict[Type[Component], Any]):
+        """Add a components to an existing entity
+
+        Calculate the new archetype for the entity based on the new components
+        composition, then:
+        - Add the entity to the new archetype
+        - Copy existing entity data from the previous archetype to the new one
+        - Remove the entity from the old archetype
+        - add the new component data to the new archetype
+
+        If all components already exist (archetype doesn't change) - this function
+        behaves similarly to multiple calls of `EntityManager.set_component`
+
+        if the entity doesn't exist - raise an exception.
+
+        Note:
+            IMPORTANT: Since moving entities between archetypes is relatively
+            inefficient, it is recommended to add all new components in a single call
+            when possible.
+            in general, if a component is expected to be added/removed frequently, it
+            is recommended to use a flag component that enables/disables it instead
+            of actively removing it.
+
+        Args:
+            entity_id (int): the entity to add the new components to
+            components_data (dict[Type[Component], Any]): dictionary of {type: data}
+                where data is a numpy array or scalar with a shape matching the
+                component schema.
+        """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
 
@@ -123,6 +188,18 @@ class EntityManager:
         self.entities_map[entity_id] = (new_arch, new_row)
 
     def remove_components(self, entity_id, components: list[Type[Component]]):
+        """Remove components from an existing entity
+
+        Remove components from an entity by deleting it from its archetype
+        and adding it to a new archetype that matches the new component composition.
+
+        if the entity doesn't exist - raise an exception.
+
+        Note:
+            this operation changes the archetype and copies the entity data and
+            is therefore relatively inefficient. see docstring in
+            `EntityManager.add_components` for more information and best practices.
+        """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
 
@@ -143,6 +220,16 @@ class EntityManager:
         self.entities_map[entity_id] = (new_arch, new_row)
 
     def get_component(self, entity_id: int, comp_type: Type[Component]) -> Any:
+        """Get the value of a specific component of an entity
+
+        if the entity doesn't exist - raise an exception.
+
+        Args:
+            entity_id (int): the entity to get the component value for
+            comp_type (Type[Component]): the type of component to get
+        Returns:
+            value: a scalar or numpy array with the component value
+        """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
 
@@ -154,6 +241,21 @@ class EntityManager:
         return arch.storage[comp_type][row]
 
     def set_component(self, entity_id: int, comp_type: Type[Component], value: Any):
+        """Set the value for a specific component of an entity
+
+        New value must match the component schema.
+        if the component doesn't exist for that entity - add it.
+        if the entity doesn't exist - raise an exception.
+
+        Note:
+            it is not recommended to use this function to add components to an entity,
+            use `EntityManager.add_components` instead.
+
+        Args:
+            entity_id (int): the entity to set the component value for
+            comp_type (Type[Component]): the type of component to set
+            value (Any): a scalar or numpy array with the component value
+        """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
         self._validate_data(comp_type, value)
@@ -161,4 +263,4 @@ class EntityManager:
         if comp_type in arch.storage:
             arch.storage[comp_type][row] = value
         else:
-            self.add_component(entity_id, {comp_type: value})
+            self.add_components(entity_id, {comp_type: value})

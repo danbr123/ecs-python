@@ -5,6 +5,27 @@ import numpy as np
 
 
 class Component(ABC):
+    """Abstract class for an ECS component
+
+    All components must inherit from this class. Optionally, a component
+    may also define a schema (shape and dtype).
+
+    An ECS component is a property of an entity. An entity may have multiple
+    components associated with it, and these may change over its lifetime.
+
+    Component data may be multidimensional.
+    The default value is a scalar (shape= (1,))
+
+    Examples:
+        >>> class PositionComponent(Component):
+        >>>     shape = (2,)  # (x, y)
+        >>>     dtype = np.float32
+
+        >>> class HealthComponent(Component):
+        >>>     shape = (1,)
+        >>>     dtype = np.int32
+    """
+
     shape: tuple = (1,)
     dtype: np.dtype = np.float32
 
