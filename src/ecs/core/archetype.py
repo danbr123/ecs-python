@@ -18,7 +18,7 @@ class Archetype:
         self.storage: dict[Type[Component], np.ndarray] = {
             c: np.zeros((self._capacity, *c.shape), dtype=c.dtype) for c in components
         }
-        self.entity_ids = np.full(self._capacity, -1, dtype=np.int32)
+        self.entity_ids = np.full(self._capacity, -1, dtype=np.int64)
         self._length = 0
 
     def __len__(self):
@@ -26,7 +26,7 @@ class Archetype:
 
     def increase_capacity(self):
         new_capacity = self._capacity * 2
-        new_entities = np.full(new_capacity, -1, dtype=np.int32)
+        new_entities = np.full(new_capacity, -1, dtype=np.int64)
         new_entities[: self._capacity] = self.entity_ids[: self._capacity]
         self.entity_ids = new_entities
 
@@ -59,7 +59,7 @@ class Archetype:
         moved_entity = -1
 
         if row_id != last_id:
-            moved_entity = self.entity_ids[last_id]
+            moved_entity = int(self.entity_ids[last_id])
             for data in self.storage.values():
                 data[row_id] = data[last_id]
             self.entity_ids[row_id] = moved_entity

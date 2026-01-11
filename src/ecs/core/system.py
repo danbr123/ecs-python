@@ -22,7 +22,7 @@ class System(ABC):
         Args:
             priority (float): number that dictates the update order of the system.
                 higher number means the system will be updated later than systems with
-                a higher number. can be a float or negative value, only the differences
+                a lower number. can be a float or negative value, only the differences
                 are used.
             enabled: flag that checks if the `update()` function should be called
             name: optional name of the system - class name by default

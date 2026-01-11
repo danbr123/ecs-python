@@ -12,11 +12,13 @@ class Component(ABC):
 class ComponentRegistry:
 
     def __init__(self):
+        """Assign unique bits to components and generate signatures"""
         self._component_bits: dict[Type[Component], int] = {}
         self._next_bit = 1
         self._cache: dict[frozenset[Type[Component]], int] = {}
 
     def get_bit(self, comp_type):
+        """Get component bit, assign one if it doesn't have one"""
         if comp_type not in self._component_bits:
             self._component_bits[comp_type] = self._next_bit
             self._next_bit <<= 1
@@ -35,6 +37,7 @@ class ComponentRegistry:
             an integer that represents the signature of this component composition.
             Each component affects a unique bit in that signature.
         """
+        components = self.sort_components(components)
         cache_key = frozenset(components)
         if cache_key in self._cache:
             return self._cache[cache_key]
@@ -44,3 +47,8 @@ class ComponentRegistry:
 
         self._cache[cache_key] = signature
         return signature
+
+    def sort_components(self, components: list[Type[Component]]) -> list[Type[Component]]:
+        """Sort components according ton their associated bit and de-duplicate"""
+        components = set(components)
+        return sorted(components, key=lambda x: self.get_bit(x))

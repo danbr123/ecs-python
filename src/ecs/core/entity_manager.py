@@ -14,8 +14,19 @@ class EntityManager:
         component_registry: ComponentRegistry,
         on_arch_created: Callable[[Archetype], Any],
     ):
+        """Manage entities lifecycle and creates Archetypes
+
+        The entity manager is responsible for creating and removing entities
+        as well as managing their components and associating them with
+        specific Archetypes.
+
+        Args:
+            component_registry (ComponentRegistry): component registry for archetype
+                signature calculation and quick lookup
+            on_arch_created (Callable[[Archetype], Any]): hook that is called when creating
+                a new archetype - this should be used to update all existing queries.
+        """
         self.next_id = 0
-        self._ids = deque()
         self.entities_map: dict[int, tuple[Archetype, int]] = {}
         self.archetypes: dict[int, Archetype] = {}
         self.registry = component_registry
@@ -29,7 +40,8 @@ class EntityManager:
 
         val_array = np.asanyarray(value)
 
-        if comp_type.shape != (1,) and val_array.shape != comp_type.shape:
+        if ((comp_type.shape != (1,) and val_array.shape != comp_type.shape)
+                or (comp_type.shape == (1,) and val_array.shape not in [(1,), ()])):
             raise ValueError(
                 f"Component {comp_type.__name__} expects shape {comp_type.shape}, "
                 f"but got {val_array.shape}."
@@ -42,6 +54,7 @@ class EntityManager:
             )
 
     def get_archetype(self, components: list[Type[Component]]) -> Archetype:
+        components = self.registry.sort_components(components)
         sig = self.registry.get_signature(components)
         if sig not in self.archetypes:
             new_arch = Archetype(components, sig)
@@ -50,11 +63,14 @@ class EntityManager:
         return self.archetypes[sig]
 
     def assign_id(self):
-        if self._ids:
-            return self._ids.popleft()
         ret = self.next_id
         self.next_id += 1
         return ret
+
+    def _remove_and_swap(self, arch: Archetype, row: int):
+        swapped = arch.remove_entity(row)
+        if swapped != -1:
+            self.entities_map[swapped] = (arch, row)
 
     def add(self, components_data: dict[Type[Component], Any]) -> int:
         for comp_type, value in components_data.items():
@@ -73,10 +89,7 @@ class EntityManager:
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
         arch, row = self.entities_map.pop(entity_id)
-        swapped = arch.remove_entity(row)
-        if swapped != -1:
-            self.entities_map[swapped] = (arch, row)
-        self._ids.append(entity_id)
+        self._remove_and_swap(arch, row)
         return entity_id
 
     def add_component(self, entity_id, components_data: dict[Type[Component], Any]):
@@ -102,7 +115,7 @@ class EntityManager:
         new_row = new_arch.allocate(entity_id)
         for comp_type, prev_data in prev_arch.storage.items():
             new_arch.storage[comp_type][new_row] = prev_data[prev_row]
-        prev_arch.remove_entity(prev_row)
+        self._remove_and_swap(prev_arch, prev_row)
 
         for comp_type, value in components_data.items():
             new_arch.storage[comp_type][new_row] = value
@@ -125,14 +138,22 @@ class EntityManager:
         for comp_type, data in new_arch.storage.items():
             data[new_row] = prev_arch.storage[comp_type][prev_row]
 
-        prev_arch.remove_entity(prev_row)
+        self._remove_and_swap(prev_arch, prev_row)
         self.entities_map[entity_id] = (new_arch, new_row)
 
     def get_component(self, entity_id: int, comp_type: Type[Component]) -> Any:
+        if entity_id not in self.entities_map:
+            raise ValueError(f"entity_id {entity_id} does not exist")
+
         arch, row = self.entities_map[entity_id]
+        if comp_type not in arch.components:
+            raise ValueError(f"entity {entity_id} does not have component {comp_type.__name__}")
         return arch.storage[comp_type][row]
 
     def set_component(self, entity_id: int, comp_type: Type[Component], value: Any):
+        if entity_id not in self.entities_map:
+            raise ValueError(f"entity_id {entity_id} does not exist")
+        self._validate_data(comp_type, value)
         arch, row = self.entities_map[entity_id]
         if comp_type in arch.storage:
             arch.storage[comp_type][row] = value

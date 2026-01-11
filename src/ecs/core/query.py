@@ -19,6 +19,8 @@ class Query:
         self.matches: list[Archetype] = []
 
     def try_add(self, arch: Archetype):
+        if arch in self.matches:
+            return
         if (arch.signature & self.mask) != self.mask:
             return
         if arch.signature & self.exclude_mask:
@@ -27,7 +29,7 @@ class Query:
 
     def fetch(self):
         for arch in self.matches:
-            yield {t: arch.storage[t][: len(arch)] for t in self.include}
+            yield arch.entity_ids[:len(arch)], {t: arch.storage[t][: len(arch)] for t in self.include}
 
 
 class QueryManager:

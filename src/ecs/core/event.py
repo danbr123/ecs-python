@@ -91,7 +91,10 @@ class EventBus:
         for weak_handler in self._subscribers.get(event_type, []):
             actual = weak_handler()
             if actual is not None:
-                actual(event)
+                try:
+                    actual(event)
+                except Exception as e:
+                    self.handle_event_error(event, actual, e)
 
     def publish_async(self, event: _T) -> None:
         """Publish an event asynchronously.
@@ -120,9 +123,16 @@ class EventBus:
             for weak_handler in self._subscribers.get(event_type, []):
                 actual = weak_handler()
                 if actual is not None:
-                    actual(event)
+                    try:
+                        actual(event)
+                    except Exception as e:
+                        self.handle_event_error(event, actual, e)
         self._current_async_queue.clear()
 
     def update(self) -> None:
         """Update the event bus by processing asynchronous events."""
         self.process_async()
+
+    def handle_event_error(self, event, func, e):
+        # TODO
+        raise e

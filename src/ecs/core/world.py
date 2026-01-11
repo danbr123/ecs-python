@@ -1,7 +1,6 @@
 from typing import Any, Optional, Type
 
-from src.ecs import Resources
-
+from .resources import Resources
 from .component import Component, ComponentRegistry
 from .entity_manager import EntityManager
 from .event import EventBus
