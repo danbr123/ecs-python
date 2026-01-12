@@ -1,9 +1,13 @@
-from typing import Any, Callable, Type
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
 from .archetype import Archetype
 from .component import Component, ComponentRegistry
+
+
+class PendingEntityException(Exception):
+    pass
 
 
 class EntityManager:
@@ -27,7 +31,7 @@ class EntityManager:
                 queries.
         """
         self.next_id = 0
-        self.entities_map: dict[int, tuple[Archetype, int]] = {}
+        self.entities_map: dict[int, tuple[Optional[Archetype], Optional[int]]] = {}
         self.archetypes: dict[int, Archetype] = {}
         self.registry = component_registry
         self.on_arch_created = on_arch_created
@@ -94,7 +98,17 @@ class EntityManager:
             self.archetypes[sig] = new_arch
         return self.archetypes[sig]
 
-    def add(self, components_data: dict[Type[Component], Any]) -> int:
+    def reserve_id(self):
+        """Reserve an id for an entity without creating it"""
+        eid = self._assign_id()
+        self.entities_map[eid] = (None, None)
+        return eid
+
+    def add(
+        self,
+        components_data: dict[Type[Component], Any],
+        reserved_id: Optional[int] = None,
+    ) -> int:
         """Create a new entity with given components
 
         Calculate the matching archetype for the entity based on the components
@@ -103,10 +117,14 @@ class EntityManager:
         """
         for comp_type, value in components_data.items():
             self._validate_data(comp_type, value)
-
+        if reserved_id is not None:
+            if reserved_id not in self.entities_map:
+                raise ValueError(f"entity_id {reserved_id} was not reserved")
+            elif self.entities_map[reserved_id][0] is not None:
+                raise ValueError(f"entity_id {reserved_id} already exists")
         comp_types = list(components_data.keys())
         archetype = self.get_archetype(comp_types)
-        eid = self._assign_id()
+        eid = reserved_id or self._assign_id()
         row = archetype.allocate(eid)
         for comp_type, value in components_data.items():
             archetype.storage[comp_type][row] = value
@@ -127,6 +145,8 @@ class EntityManager:
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
         arch, row = self.entities_map.pop(entity_id)
+        if arch is None:  # entity was reserved but never created
+            return entity_id
         self._remove_and_swap(arch, row)
         return entity_id
 
@@ -167,6 +187,9 @@ class EntityManager:
 
         prev_arch, prev_row = self.entities_map[entity_id]
 
+        if prev_arch is None:  # entity was reserved but never created
+            raise RuntimeError("Attempted to structurally modify a pending entity")
+
         types = list(prev_arch.components)
         for comp_type in components_data:
             if comp_type not in types:
@@ -205,6 +228,9 @@ class EntityManager:
 
         prev_arch, prev_row = self.entities_map[entity_id]
 
+        if prev_arch is None:  # entity was reserved but never created
+            raise RuntimeError("Attempted to structurally modify a pending entity")
+
         to_remove = set(components)
         types = [c for c in prev_arch.components if c not in to_remove]
 
@@ -229,11 +255,19 @@ class EntityManager:
             comp_type (Type[Component]): the type of component to get
         Returns:
             value: a scalar or numpy array with the component value
+
+        Raises:
+            ValueError: if the entity doesn't exist or doesn't have the component
+            PendingEntityException: if the entity is pending
         """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
 
         arch, row = self.entities_map[entity_id]
+
+        if arch is None:  # entity was reserved but never created
+            raise PendingEntityException(f"entity_id {entity_id} is still pending")
+
         if comp_type not in arch.components:
             raise ValueError(
                 f"entity {entity_id} does not have component {comp_type.__name__}"
@@ -255,11 +289,20 @@ class EntityManager:
             entity_id (int): the entity to set the component value for
             comp_type (Type[Component]): the type of component to set
             value (Any): a scalar or numpy array with the component value
+
+        Raises:
+            ValueError: if the entity doesn't exist or doesn't have the component
+            PendingEntityException: if the entity is pending
+
         """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
         self._validate_data(comp_type, value)
         arch, row = self.entities_map[entity_id]
+
+        if arch is None:  # entity was reserved but never created
+            raise PendingEntityException(f"entity_id {entity_id} is still pending")
+
         if comp_type in arch.storage:
             arch.storage[comp_type][row] = value
         else:

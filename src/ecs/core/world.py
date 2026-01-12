@@ -1,9 +1,10 @@
 from typing import Any, Optional, Type
 
+from .command_buffer import CommandBuffer
 from .component import Component, ComponentRegistry
 from .entity_manager import EntityManager
 from .event import EventBus
-from .query import QueryManager
+from .query import Query, QueryManager
 from .resources import Resources
 from .system import System
 
@@ -53,10 +54,18 @@ class World:
             self.registry, on_arch_created=self.query_manager.on_arch_created
         )
         self.resources = Resources()
+        self.cmd_buffer = CommandBuffer(self)
 
-    def create_entity(self, components_data: dict[Type[Component], Any]) -> int:
+    def create_entity(
+        self,
+        components_data: dict[Type[Component], Any],
+        reserved_id: Optional[int] = None,
+    ) -> int:
         """Create a new entity with initial data"""
-        return self.entities.add(components_data)
+        return self.entities.add(components_data, reserved_id)
+
+    def reserve_id(self):
+        return self.entities.reserve_id()
 
     def remove_entity(self, entity_id):
         """Remove an entity from the world"""
@@ -80,7 +89,7 @@ class World:
 
     def query(
         self, include: list[Type[Component]], exclude: list[Type[Component]] = None
-    ):
+    ) -> Query:
         """Query all archetype with a matching composition
 
         If the query is new, update it with all existing archetypes.
@@ -118,7 +127,9 @@ class World:
         """
         for system in self.systems:
             if system.enabled and (group is None or system.group == group):
-                system.update(self, dt)
+                with self.cmd_buffer.redirect_commands():
+                    system.update(self, dt)
+                self.cmd_buffer.flush()
 
     def update(self, dt: float, group: Optional[str] = None) -> None:
         """Update the world
@@ -135,3 +146,6 @@ class World:
         """
         self.update_systems(dt, group)
         self.event_bus.update()
+
+    def flush(self):
+        self.cmd_buffer.flush()
