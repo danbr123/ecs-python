@@ -278,7 +278,6 @@ class EntityManager:
         """Set the value for a specific component of an entity
 
         New value must match the component schema.
-        if the component doesn't exist for that entity - add it.
         if the entity doesn't exist - raise an exception.
 
         Note:
@@ -303,7 +302,8 @@ class EntityManager:
         if arch is None:  # entity was reserved but never created
             raise PendingEntityException(f"entity_id {entity_id} is still pending")
 
-        if comp_type in arch.storage:
-            arch.storage[comp_type][row] = value
-        else:
-            self.add_components(entity_id, {comp_type: value})
+        if comp_type not in arch.storage:
+            raise ValueError(
+                f"entity {entity_id} does not have component {comp_type.__name__}"
+            )
+        arch.storage[comp_type][row] = value
