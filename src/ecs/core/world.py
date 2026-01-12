@@ -128,7 +128,11 @@ class World:
         for system in self.systems:
             if system.enabled and (group is None or system.group == group):
                 with self.cmd_buffer.redirect_commands():
-                    system.update(self, dt)
+                    try:
+                        system.update(self, dt)
+                    except Exception as e:
+                        self.cmd_buffer.clear()
+                        system.on_error(self, e)
                 self.cmd_buffer.flush()
 
     def update(self, dt: float, group: Optional[str] = None) -> None:

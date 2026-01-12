@@ -59,3 +59,6 @@ class System(ABC):
 
     def disable(self):
         self.enabled = False
+
+    def on_error(self, world: World, ex: Exception) -> None:
+        raise ex

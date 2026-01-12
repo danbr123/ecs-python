@@ -104,6 +104,10 @@ class EntityManager:
         self.entities_map[eid] = (None, None)
         return eid
 
+    def deregister_reserved_ids(self, ids: list[int]):
+        for eid in ids:
+            self.entities_map.pop(eid, None)
+
     def add(
         self,
         components_data: dict[Type[Component], Any],
