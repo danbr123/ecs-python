@@ -2,7 +2,7 @@ from typing import Type
 
 import numpy as np
 
-from .component import Component
+from .component import Component, TagComponent
 
 
 class Archetype:
@@ -42,7 +42,9 @@ class Archetype:
         self.components = components
         self._capacity = initial_capacity
         self.storage: dict[Type[Component], np.ndarray] = {
-            c: np.zeros((self._capacity, *c.shape), dtype=c.dtype) for c in components
+            c: np.zeros((self._capacity, *c.shape), dtype=c.dtype)
+            for c in components
+            if not issubclass(c, TagComponent)
         }
         self.entity_ids = np.full(self._capacity, -1, dtype=np.int64)
         self._length = 0

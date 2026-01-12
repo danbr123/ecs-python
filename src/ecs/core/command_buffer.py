@@ -59,9 +59,9 @@ class CommandBuffer:
         try:
             for cmd, *args in self.commands:
                 if cmd == "create_entity":
-                    self.world.entities.create_entity(*args)
+                    self.world.entities.add(*args)
                 elif cmd == "remove_entity":
-                    self.world.entities.remove_entity(*args)
+                    self.world.entities.remove(*args)
                 elif cmd == "add_components":
                     self.world.entities.add_components(*args)
                 elif cmd == "remove_components":

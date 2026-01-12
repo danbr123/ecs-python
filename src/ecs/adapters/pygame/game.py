@@ -51,7 +51,7 @@ class PygameApp:
 
     def register_group(self, name: str, freq: float):
         self.groups_config[name] = {
-            "frequency": 1.0 / freq if freq > 0 else 0,
+            "interval": 1.0 / freq if freq > 0 else 0,
             "accumulator": 0.0,
         }
 
@@ -70,11 +70,11 @@ class PygameApp:
 
             for grp, config in self.groups_config.items():
                 config["accumulator"] += render_dt
-                if config["accumulator"] > self.MAX_ACCUMULATOR:
+                if config["accumulator"] > self.MAX_ACCUMULATOR + config["interval"]:
                     config["accumulator"] = self.MAX_ACCUMULATOR
-                while config["accumulator"] >= config["frequency"]:
-                    self.world.update(config["frequency"], group=grp)
-                    config["accumulator"] -= config["frequency"]
+                while config["accumulator"] >= config["interval"]:
+                    self.world.update(config["interval"], group=grp)
+                    config["accumulator"] -= config["interval"]
 
                     if (time.perf_counter() - frame_start_time) > self.TIME_BUDGET:
                         break

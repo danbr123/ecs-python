@@ -30,6 +30,31 @@ class Component(ABC):
     dtype: np.dtype = np.float32
 
 
+class TagComponent(Component, ABC):
+    """Abstract class for components that represent a data-less Tag
+
+    These components do not store any data, and can be used to attach flags
+    or specific tags to entities.
+
+    Note:
+        This component type is best used for properties that do not change frequently.
+        due to the inefficiency of component removal and addition (changing archetypes),
+        for frequently changing tags, it is better to use a single boolean component
+        (flag) that is always attached to the entity, than adding and removing tags from
+        entities.
+
+    Examples:
+        >>> class IsPlayer(TagComponent):
+        >>>     pass
+        >>>
+        >>> class Edible(TagComponent):
+        >>>     pass
+    """
+
+    shape = None
+    dtype = None
+
+
 class ComponentRegistry:
 
     def __init__(self):

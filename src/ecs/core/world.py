@@ -47,6 +47,7 @@ class World:
 
     def __init__(self):
         self.systems = []
+        self._systems_by_type: dict[Type[System], System] = {}
         self.registry = ComponentRegistry()
         self.query_manager = QueryManager(self.registry)
         self.entities = EntityManager(
@@ -110,7 +111,14 @@ class World:
         """Register a new system"""
         system.initialize(self)
         self.systems.append(system)
+        self._systems_by_type[type(system)] = system
         self.systems.sort(key=lambda s: s.priority)
+
+    def get_system(self, system_type: Type[System]) -> System:
+        try:
+            return self._systems_by_type.get(system_type)
+        except KeyError:
+            raise ValueError(f"System {system_type.__name__} is not registered")
 
     def update_systems(self, dt: float, group: Optional[str] = None) -> None:
         """Update the systems in the world

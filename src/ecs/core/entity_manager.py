@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional, Type
 import numpy as np
 
 from .archetype import Archetype
-from .component import Component, ComponentRegistry
+from .component import Component, ComponentRegistry, TagComponent
 
 
 class PendingEntityException(Exception):
@@ -40,6 +40,9 @@ class EntityManager:
     def _validate_data(comp_type: Type[Component], value: Any):
         """Perform validation of data against component schema."""
         if not __debug__:
+            return
+        if issubclass(comp_type, TagComponent):
+            # skip value validation for tag components
             return
 
         val_array = np.asanyarray(value)
@@ -118,6 +121,8 @@ class EntityManager:
         Calculate the matching archetype for the entity based on the components
         composition, then insert the entity and its component data to the
         archetype storage.
+        For tag components only the keys in component_data are used, and the values
+        are ignored.
         """
         for comp_type, value in components_data.items():
             self._validate_data(comp_type, value)
@@ -131,6 +136,8 @@ class EntityManager:
         eid = reserved_id or self._assign_id()
         row = archetype.allocate(eid)
         for comp_type, value in components_data.items():
+            if issubclass(comp_type, TagComponent):
+                continue
             archetype.storage[comp_type][row] = value
         self.entities_map[eid] = (archetype, row)
         return eid
@@ -182,6 +189,7 @@ class EntityManager:
             components_data (dict[Type[Component], Any]): dictionary of {type: data}
                 where data is a numpy array or scalar with a shape matching the
                 component schema.
+                for TagComponents, the value is ignored.
         """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
@@ -202,6 +210,8 @@ class EntityManager:
         new_arch = self.get_archetype(types)
         if new_arch == prev_arch:
             for comp_type, value in components_data.items():
+                if issubclass(comp_type, TagComponent):
+                    continue
                 new_arch.storage[comp_type][prev_row] = value
             return
 
@@ -211,6 +221,8 @@ class EntityManager:
         self._remove_and_swap(prev_arch, prev_row)
 
         for comp_type, value in components_data.items():
+            if issubclass(comp_type, TagComponent):
+                continue
             new_arch.storage[comp_type][new_row] = value
         self.entities_map[entity_id] = (new_arch, new_row)
 
@@ -244,6 +256,8 @@ class EntityManager:
 
         new_row = new_arch.allocate(entity_id)
         for comp_type, data in new_arch.storage.items():
+            if issubclass(comp_type, TagComponent):
+                continue
             data[new_row] = prev_arch.storage[comp_type][prev_row]
 
         self._remove_and_swap(prev_arch, prev_row)
@@ -276,6 +290,8 @@ class EntityManager:
             raise ValueError(
                 f"entity {entity_id} does not have component {comp_type.__name__}"
             )
+        if issubclass(comp_type, TagComponent):
+            return None
         return arch.storage[comp_type][row]
 
     def set_component(self, entity_id: int, comp_type: Type[Component], value: Any):
@@ -310,4 +326,7 @@ class EntityManager:
             raise ValueError(
                 f"entity {entity_id} does not have component {comp_type.__name__}"
             )
+
+        if issubclass(comp_type, TagComponent):
+            return
         arch.storage[comp_type][row] = value
