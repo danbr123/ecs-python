@@ -13,9 +13,9 @@ class World:
     """Central coordinator for the ECS runtime.
 
     The World is the composition root for the ECS. It owns the component registry
-    and wires together the entity, query, resource, and event subsystems. Most
-    gameplay or simulation code should interact with the ECS through this object
-    rather than talking to managers directly.
+    and wires together the entity, query, resource, and events. Most gameplay or
+    simulation code should interact with the ECS through this object rather than talking
+    to managers directly.
 
     Responsibilities:
       - Create and remove entities.
