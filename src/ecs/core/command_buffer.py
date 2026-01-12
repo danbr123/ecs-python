@@ -56,11 +56,11 @@ class CommandBuffer:
         # TODO - group operations
         for cmd, *args in self.commands:
             if cmd == "create_entity":
-                self.world.create_entity(*args)
+                self.world.entities.create_entity(*args)
             elif cmd == "remove_entity":
-                self.world.remove_entity(*args)
+                self.world.entities.remove_entity(*args)
             elif cmd == "add_components":
-                self.world.add_components(*args)
+                self.world.entities.add_components(*args)
             elif cmd == "remove_components":
-                self.world.remove_components(*args)
+                self.world.entities.remove_components(*args)
         self.commands = []
