@@ -47,7 +47,6 @@ class World:
 
     def __init__(self):
         self.systems = []
-        self.event_bus = EventBus()
         self.registry = ComponentRegistry()
         self.query_manager = QueryManager(self.registry)
         self.entities = EntityManager(
@@ -55,6 +54,7 @@ class World:
         )
         self.resources = Resources()
         self.cmd_buffer = CommandBuffer(self)
+        self.event_bus = EventBus(self.cmd_buffer)
 
     def create_entity(
         self,
@@ -152,4 +152,16 @@ class World:
         self.event_bus.update()
 
     def flush(self):
+        """Execute all commands in the command buffer
+
+        Apply all structural changes that are buffered in the command buffer (called
+        by a system but not yet executed).
+        This happens automatically after each system is updated. this function provides
+        a way to manually perform this action to make these changes available to the
+        system immediately.
+
+        WARNING: Executing structural commands while iterating over query results may
+        result in unexpected behavior and corrupted data. Do not use this function
+        unless you know what you are doing.
+        """
         self.cmd_buffer.flush()

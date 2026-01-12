@@ -1,6 +1,8 @@
 from typing import Callable, Dict, List, Optional, Type, TypeVar
 from weakref import WeakMethod, ref
 
+from src.ecs.core.command_buffer import CommandBuffer
+
 
 class Event:
     """Base class for events."""
@@ -26,11 +28,12 @@ class EventBus:
     until the following frame.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, cmd_buffer: CommandBuffer):
         self._subscribers: Dict[Type[_T], List[WeakCallable]] = {}
         # Two buffers for asynchronous events.
         self._current_async_queue: List[_T] = []
         self._next_async_queue: List[_T] = []
+        self.cmd_buffer = cmd_buffer
 
     def subscribe(self, event_type: Type[_T], handler: Callable[[_T], None]) -> None:
         """Subscribe a handler to a specific event type.
@@ -92,7 +95,8 @@ class EventBus:
             actual = weak_handler()
             if actual is not None:
                 try:
-                    actual(event)
+                    with self.cmd_buffer.redirect_commands():
+                        actual(event)
                 except Exception as e:
                     self.handle_event_error(event, actual, e)
 
@@ -114,6 +118,9 @@ class EventBus:
 
         Uses double buffering to ensure events published in the current frame
         aren't processed until the next update cycle.
+
+        during processing of a specific event, structural changes are stored in a
+        command buffer instead of being executed directly.
         """
         # Swap queues and reset next queue.
         self._current_async_queue, self._next_async_queue = self._next_async_queue, []
@@ -123,7 +130,8 @@ class EventBus:
                 actual = weak_handler()
                 if actual is not None:
                     try:
-                        actual(event)
+                        with self.cmd_buffer.redirect_commands():
+                            actual(event)
                     except Exception as e:
                         self.handle_event_error(event, actual, e)
         self._current_async_queue.clear()
@@ -131,6 +139,7 @@ class EventBus:
     def update(self) -> None:
         """Update the event bus by processing asynchronous events."""
         self.process_async()
+        self.cmd_buffer.flush()
 
     def handle_event_error(self, event, func, e):
         # TODO
