@@ -89,10 +89,11 @@ class MovementSystem(System):
 world = World()
 world.register_system(MovementSystem())
 eid = world.create_entity(components_data={
-    PositionComponent: np.array((0, 0), dtype=np.float32),
+     # for 1d array, conversion to ndarray happens automatically assuming shape and dtypes match
+    PositionComponent: (0, 0),
     VelocityComponent: np.array((1, 2), dtype=np.float32)
 })
 world.update(dt=1)
 world.update(dt=1)
-print(world.get_component(eid, PositionComponent))  # (2, 4)
+print(world.get_component(eid, PositionComponent))  # [2. 4.]
 ```

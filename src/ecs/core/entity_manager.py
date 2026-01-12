@@ -37,29 +37,39 @@ class EntityManager:
         self.on_arch_created = on_arch_created
 
     @staticmethod
-    def _validate_data(comp_type: Type[Component], value: Any):
-        """Perform validation of data against component schema."""
+    def _validate_array(comp_type: Type[Component], value: Any) -> np.ndarray:
         if not __debug__:
-            return
-        if issubclass(comp_type, TagComponent):
-            # skip value validation for tag components
-            return
+            return value
 
-        val_array = np.asanyarray(value)
-
-        if (comp_type.shape != (1,) and val_array.shape != comp_type.shape) or (
-            comp_type.shape == (1,) and val_array.shape not in [(1,), ()]
+        if (comp_type.shape != (1,) and value.shape != comp_type.shape) or (
+            comp_type.shape == (1,) and value.shape not in [(1,), ()]
         ):
             raise ValueError(
                 f"Component {comp_type.__name__} expects shape {comp_type.shape}, "
-                f"but got {val_array.shape}."
+                f"but got {value.shape}."
             )
 
-        if not np.can_cast(val_array.dtype, comp_type.dtype, casting="same_kind"):
+        if not np.can_cast(value.dtype, comp_type.dtype, casting="same_kind"):
             raise TypeError(
                 f"Component {comp_type.__name__} expects dtype {comp_type.dtype}, "
-                f"but got incompatible dtype {val_array.dtype}."
+                f"but got incompatible dtype {value.dtype}."
             )
+        return value
+
+    def _validate_data(self, comp_type: Type[Component], value: Any):
+        """Perform validation of data against component schema."""
+        if issubclass(comp_type, TagComponent):
+            # skip value validation for tag components
+            return None
+        elif isinstance(value, np.ndarray):
+            return self._validate_array(comp_type, value)
+        if len(comp_type.shape) == 1:
+            arr = np.array(value, dtype=comp_type.dtype)
+            return self._validate_array(comp_type, arr)
+        raise ValueError(
+            f"{comp_type.__name__} is multi-dimensional {comp_type.shape} "
+            f"and does not support auto-casting to numpy arrays."
+        )
 
     def _assign_id(self):
         """Assign unique entity id"""
@@ -124,18 +134,20 @@ class EntityManager:
         For tag components only the keys in component_data are used, and the values
         are ignored.
         """
-        for comp_type, value in components_data.items():
-            self._validate_data(comp_type, value)
+        converted_data = {
+            comp_type: self._validate_data(comp_type, value)
+            for comp_type, value in components_data.items()
+        }
         if reserved_id is not None:
             if reserved_id not in self.entities_map:
                 raise ValueError(f"entity_id {reserved_id} was not reserved")
             elif self.entities_map[reserved_id][0] is not None:
                 raise ValueError(f"entity_id {reserved_id} already exists")
-        comp_types = list(components_data.keys())
+        comp_types = list(converted_data.keys())
         archetype = self.get_archetype(comp_types)
         eid = reserved_id or self._assign_id()
         row = archetype.allocate(eid)
-        for comp_type, value in components_data.items():
+        for comp_type, value in converted_data.items():
             if issubclass(comp_type, TagComponent):
                 continue
             archetype.storage[comp_type][row] = value
@@ -194,8 +206,10 @@ class EntityManager:
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
 
-        for comp_type, value in components_data.items():
-            self._validate_data(comp_type, value)
+        converted_data = {
+            comp_type: self._validate_data(comp_type, value)
+            for comp_type, value in components_data.items()
+        }
 
         prev_arch, prev_row = self.entities_map[entity_id]
 
@@ -203,13 +217,13 @@ class EntityManager:
             raise RuntimeError("Attempted to structurally modify a pending entity")
 
         types = list(prev_arch.components)
-        for comp_type in components_data:
+        for comp_type in converted_data:
             if comp_type not in types:
                 types.append(comp_type)
 
         new_arch = self.get_archetype(types)
         if new_arch == prev_arch:
-            for comp_type, value in components_data.items():
+            for comp_type, value in converted_data.items():
                 if issubclass(comp_type, TagComponent):
                     continue
                 new_arch.storage[comp_type][prev_row] = value
@@ -220,7 +234,7 @@ class EntityManager:
             new_arch.storage[comp_type][new_row] = prev_data[prev_row]
         self._remove_and_swap(prev_arch, prev_row)
 
-        for comp_type, value in components_data.items():
+        for comp_type, value in converted_data.items():
             if issubclass(comp_type, TagComponent):
                 continue
             new_arch.storage[comp_type][new_row] = value
@@ -316,7 +330,7 @@ class EntityManager:
         """
         if entity_id not in self.entities_map:
             raise ValueError(f"entity_id {entity_id} does not exist")
-        self._validate_data(comp_type, value)
+        value = self._validate_data(comp_type, value)
         arch, row = self.entities_map[entity_id]
 
         if arch is None:  # entity was reserved but never created
