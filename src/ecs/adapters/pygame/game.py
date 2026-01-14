@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import time
 from typing import Optional
 
-import pygame
+try:
+    import pygame
+except ImportError:
+    raise ImportError("Pygame adapter requires pygame to be installed.")
 
 from ...core.world import World
 
 
 class PygameApp:
 
-    MAX_ACCUMULATOR = 0.1
-    TIME_BUDGET = 0.01
+    DEFAULT_MIN_FPS = 10
 
     def __init__(
         self,
@@ -23,6 +24,10 @@ class PygameApp:
         """Skeleton for standard pygame loop.
 
         Override and implement hooks with game-specific logic.
+        Optional features:
+        time_scale (float): Multiplier for game speed (default 1.0).
+        min_fps (int): The minimum acceptable frame rate. If the game runs slower
+                       than this, the simulation speed will drop to maintain stability.
 
         Args:
              world (World): World instance
@@ -62,22 +67,31 @@ class PygameApp:
 
         while self.running:
             render_dt = self.clock.tick(self.fps) / 1000.0
-            frame_start_time = time.perf_counter()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
                 self.on_event(event)
 
+            time_scale = self.world.resources.get("time_scale", 1.0)
+            if time_scale > 10.0:
+                time_scale = 10.0
+
+            min_fps = self.world.resources.get("min_fps", self.DEFAULT_MIN_FPS)
+            if min_fps < 1:
+                min_fps = 1
+            max_accumulator = 1.0 / min_fps
+
             for grp, config in self.groups_config.items():
-                config["accumulator"] += render_dt
-                if config["accumulator"] > self.MAX_ACCUMULATOR + config["interval"]:
-                    config["accumulator"] = self.MAX_ACCUMULATOR
+                config["accumulator"] += render_dt * time_scale
+
+                limit = max_accumulator + config["interval"]
+                if config["accumulator"] > limit:
+                    config["accumulator"] = max_accumulator
+
                 while config["accumulator"] >= config["interval"]:
                     self.world.update(config["interval"], group=grp)
                     config["accumulator"] -= config["interval"]
 
-                    if (time.perf_counter() - frame_start_time) > self.TIME_BUDGET:
-                        break
             self.screen.fill((0, 0, 0))
             self.on_pre_render(screen=self.screen)
             self.world.update(render_dt, group="render")

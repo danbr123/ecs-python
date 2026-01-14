@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Sequence, Type
 
 from .archetype import Archetype
 from .component import Component, ComponentRegistry
@@ -62,8 +62,11 @@ class Query:
             return
         self.matches.append(arch)
 
-    def fetch(self):
+    def fetch(self, optional: Optional[Sequence[Component]] = None):
         """Fetch the matched archetypes for the query
+
+        If optional components are provided, fetch them as well if the archetype
+        has these components.
 
         Returns:
             a generator that yields tuples:
@@ -73,10 +76,16 @@ class Query:
             - storage_data: dictionary of {component_type: storage} where the component
               type is one of the archetype's components, and the storage is the array
               that contains that component data.
+
+        Args:
+            optional: list of additional component to fetch. by default, only `include`
+                components are fetched.
         """
+        optional = optional or []
         for arch in self.matches:
+            fetch_comps = self.include + [c for c in optional if c in arch.components]
             yield arch.entity_ids[: len(arch)], {
-                t: arch.storage[t][: len(arch)] for t in self.include
+                t: arch.storage[t][: len(arch)] for t in fetch_comps
             }
 
 

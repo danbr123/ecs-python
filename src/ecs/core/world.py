@@ -1,5 +1,8 @@
+from contextlib import contextmanager
+from functools import wraps
 from typing import Any, Optional, Type
 
+from .archetype import Archetype
 from .command_buffer import CommandBuffer
 from .component import Component, ComponentRegistry
 from .entity_manager import EntityManager
@@ -56,7 +59,33 @@ class World:
         self.resources = Resources()
         self.cmd_buffer = CommandBuffer(self)
         self.event_bus = EventBus(self.cmd_buffer)
+        self._write_locked = False  # lock structural commands
 
+    @contextmanager
+    def write_lock(self):
+        try:
+            self._write_locked = True
+            yield
+        finally:
+            self._write_locked = False
+
+    @staticmethod
+    def _lock_on_sys_update(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self._write_locked:
+                raise RuntimeError(
+                    f"Function {func.__name__} is locked during system update. Please "
+                    f"use `world.cmd_buffer.{func.__name__} instead."
+                )
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    def reserve_id(self):
+        return self.entities.reserve_id()
+
+    @_lock_on_sys_update
     def create_entity(
         self,
         components_data: dict[Type[Component], Any],
@@ -65,17 +94,17 @@ class World:
         """Create a new entity with initial data"""
         return self.entities.add(components_data, reserved_id)
 
-    def reserve_id(self):
-        return self.entities.reserve_id()
-
+    @_lock_on_sys_update
     def remove_entity(self, entity_id):
         """Remove an entity from the world"""
         self.entities.remove(entity_id)
 
+    @_lock_on_sys_update
     def add_components(self, entity_id, components_data: dict[Type[Component], Any]):
         """Add components to an entity"""
         self.entities.add_components(entity_id, components_data)
 
+    @_lock_on_sys_update
     def remove_components(self, entity_id, components: list[Type[Component]]):
         """Remove components from an entity"""
         return self.entities.remove_components(entity_id, components)
@@ -135,13 +164,13 @@ class World:
         """
         for system in self.systems:
             if system.enabled and (group is None or system.group == group):
-                with self.cmd_buffer.redirect_commands():
+                with self.write_lock():
                     try:
                         system.update(self, dt)
                     except Exception as e:
                         self.cmd_buffer.clear()
                         system.on_error(self, e)
-                self.cmd_buffer.flush()
+                self.flush()
 
     def update(self, dt: float, group: Optional[str] = None) -> None:
         """Update the world
@@ -157,7 +186,9 @@ class World:
                 If None - update all systems.
         """
         self.update_systems(dt, group)
-        self.event_bus.update()
+        with self.write_lock():
+            self.event_bus.update()
+        self.flush()
 
     def flush(self):
         """Execute all commands in the command buffer
@@ -173,3 +204,8 @@ class World:
         unless you know what you are doing.
         """
         self.cmd_buffer.flush()
+
+    def get_archetype(self, entity_id: int) -> Archetype:
+        if entity_id not in self.entities.entities_map:
+            raise ValueError(f"Entity {entity_id} does not exist")
+        return self.entities.entities_map[entity_id][0]

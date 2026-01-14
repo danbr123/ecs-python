@@ -8,13 +8,13 @@ from ...core.world import World
 
 
 class Transform(Component):
-    """Standard component for position."""
+    """Standard component for position"""
 
     shape = (2,)  # [x, y]
 
 
 class Sprite(Component):
-    """Standard component for a pygame surface."""
+    """Standard component for a pygame surface"""
 
     dtype = object
 
@@ -24,9 +24,7 @@ class DisableRender(Component):
 
 
 class PygameRenderSystem(System):
-    """
-    A basic rendering system that draws Sprites at Transform positions.
-    """
+    """A basic rendering system that draws Sprites at Transform positions"""
 
     group = "render"
 
@@ -39,11 +37,12 @@ class PygameRenderSystem(System):
 
     def update(self, world: World, dt: float) -> None:
         screen = world.resources.get_as("pygame.screen", pygame.Surface)
-        for _, data in self.query.fetch():
+        for _, data in self.query.fetch(optional=[DisableRender]):
             positions = data[Transform]
             surfaces = data[Sprite]
 
-            for i in range(len(positions)):
-                if data[DisableRender][i]:
-                    continue
-                screen.blit(surfaces[i], (positions[i][0], positions[i][1]))
+            if DisableRender in data:
+                is_visible = ~data[DisableRender].astype(bool).ravel()
+                positions = positions[is_visible]
+                surfaces = surfaces[is_visible]
+            screen.blits(zip(surfaces, positions))

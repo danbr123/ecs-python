@@ -95,8 +95,7 @@ class EventBus:
             actual = weak_handler()
             if actual is not None:
                 try:
-                    with self.cmd_buffer.redirect_commands():
-                        actual(event)
+                    actual(event)
                 except Exception as e:
                     self.handle_event_error(event, actual, e)
 
@@ -130,8 +129,7 @@ class EventBus:
                 actual = weak_handler()
                 if actual is not None:
                     try:
-                        with self.cmd_buffer.redirect_commands():
-                            actual(event)
+                        actual(event)
                     except Exception as e:
                         self.handle_event_error(event, actual, e)
         self._current_async_queue.clear()
