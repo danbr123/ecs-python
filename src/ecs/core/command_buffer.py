@@ -46,8 +46,7 @@ class CommandBuffer:
                 elif cmd == "remove_components":
                     self.world.entities.remove_components(*args)
         finally:
-            self._reserved_ids = []
-            self.commands = []
+            self.clear()
 
     def clear(self):
         self.world.entities.deregister_reserved_ids(self._reserved_ids)
