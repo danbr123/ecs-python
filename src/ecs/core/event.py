@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Optional, Type, TypeVar
 from weakref import WeakMethod, ref
 
-from src.ecs.core.command_buffer import CommandBuffer
+from .command_buffer import CommandBuffer
 
 
 class Event:
