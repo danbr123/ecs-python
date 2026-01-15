@@ -102,5 +102,6 @@ class ComponentRegistry:
         self, components: list[Type[Component]]
     ) -> list[Type[Component]]:
         """Sort components according to their associated bit and de-duplicate"""
+        # TODO - may be redundant now (archetype stores components as sets)
         components = set(components)
         return sorted(components, key=lambda x: self.get_bit(x))

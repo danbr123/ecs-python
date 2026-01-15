@@ -39,29 +39,29 @@ class Archetype:
                 up automatically when needed, but does not scale down.
         """
         self.signature = signature
-        self.components = components
+        self.components = set(components)
         self._capacity = initial_capacity
         self.storage: dict[Type[Component], np.ndarray] = {
-            c: np.zeros((self._capacity, *c.shape), dtype=c.dtype)
+            c: np.empty((self._capacity, *c.shape), dtype=c.dtype)
             for c in components
             if not issubclass(c, TagComponent)
         }
         self.entity_ids = np.full(self._capacity, -1, dtype=np.int64)
         self._length = 0
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._length
 
     def increase_capacity(self):
         """Double the capacity of the archetype arrays"""
         new_capacity = self._capacity * 2
         new_entities = np.full(new_capacity, -1, dtype=np.int64)
-        new_entities[: self._capacity] = self.entity_ids[: self._capacity]
+        new_entities[: self._length] = self.entity_ids[: self._length]
         self.entity_ids = new_entities
 
         for comp, data in self.storage.items():
-            _new_data = np.zeros((new_capacity, *data.shape[1:]), dtype=data.dtype)
-            _new_data[: self._capacity] = data[: self._capacity]
+            _new_data = np.empty((new_capacity, *data.shape[1:]), dtype=data.dtype)
+            _new_data[: self._length] = data[: self._length]
             self.storage[comp] = _new_data
         self._capacity = new_capacity
 
@@ -86,7 +86,7 @@ class Archetype:
         self._length += 1
         return row
 
-    def remove_entity(self, row_id):
+    def remove_entity(self, row_id) -> int:
         """Remove entity from archetype by row
 
         To keep the array dense - move the last entity to the position of the removed
@@ -98,6 +98,9 @@ class Archetype:
             entity_id: the id of the entity that now occupies row_id, or -1 if
                 there is none
         """
+        if row_id < 0 or row_id >= self._length:
+            raise IndexError(f"row_id out of range: {row_id}")
+
         last_id = self._length - 1
         moved_entity = -1
 

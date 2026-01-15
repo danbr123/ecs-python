@@ -21,7 +21,7 @@ class Resources(MutableMapping[str, Any]):
     def __init__(self) -> None:
         self._data: Dict[str, Any] = {}
 
-    def get(self, key: str, default: Optional[str] = None) -> Any:
+    def get(self, key: str, default: Optional[Any] = None) -> Any:
         return self._data.get(key, default)
 
     def get_as(self, key: str, type_hint: Type[T]) -> T:
@@ -81,6 +81,8 @@ class ResourceView:
     _prefix: str
 
     def _k(self, key: str) -> str:
+        if not key:
+            raise ValueError("Key cannot be empty")
         if not self._prefix:
             return key
         return f"{self._prefix}.{key}"

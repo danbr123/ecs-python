@@ -103,7 +103,6 @@ class EntityManager:
         Returns:
             archetype (Archetype): an archetype that matches the component composition
         """
-        components = self.registry.sort_components(components)
         sig = self.registry.get_signature(components)
         if sig not in self.archetypes:
             new_arch = Archetype(components, sig)
@@ -145,7 +144,7 @@ class EntityManager:
                 raise ValueError(f"entity_id {reserved_id} already exists")
         comp_types = list(converted_data.keys())
         archetype = self.get_archetype(comp_types)
-        eid = reserved_id or self._assign_id()
+        eid = reserved_id if reserved_id is not None else self._assign_id()
         row = archetype.allocate(eid)
         for comp_type, value in converted_data.items():
             if issubclass(comp_type, TagComponent):
@@ -154,7 +153,7 @@ class EntityManager:
         self.entities_map[eid] = (archetype, row)
         return eid
 
-    def remove(self, entity_id):
+    def remove(self, entity_id: int) -> int:
         """Remove an entity
 
         Remove the entity from its archetype and from the entities_map.
@@ -173,7 +172,9 @@ class EntityManager:
         self._remove_and_swap(arch, row)
         return entity_id
 
-    def add_components(self, entity_id, components_data: dict[Type[Component], Any]):
+    def add_components(
+        self, entity_id: int, components_data: dict[Type[Component], Any]
+    ):
         """Add a components to an existing entity
 
         Calculate the new archetype for the entity based on the new components
@@ -240,7 +241,7 @@ class EntityManager:
             new_arch.storage[comp_type][new_row] = value
         self.entities_map[entity_id] = (new_arch, new_row)
 
-    def remove_components(self, entity_id, components: list[Type[Component]]):
+    def remove_components(self, entity_id: int, components: list[Type[Component]]):
         """Remove components from an existing entity
 
         Remove components from an entity by deleting it from its archetype
@@ -336,7 +337,7 @@ class EntityManager:
         if arch is None:  # entity was reserved but never created
             raise PendingEntityException(f"entity_id {entity_id} is still pending")
 
-        if comp_type not in arch.storage:
+        if comp_type not in arch.components:
             raise ValueError(
                 f"entity {entity_id} does not have component {comp_type.__name__}"
             )
