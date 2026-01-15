@@ -11,32 +11,32 @@ if TYPE_CHECKING:
 class CommandBuffer:
     def __init__(self, world: World):
         self.world = world
-        self.commands = []
+        self._commands = []
         self._reserved_ids = []
 
     def create_entity(self, components_data: dict[Type[Component], Any]):
         """Create a new entity with initial data"""
         entity_id = self.world.reserve_id()
-        self.commands.append(("create_entity", components_data, entity_id))
+        self._commands.append(("create_entity", components_data, entity_id))
         self._reserved_ids.append(entity_id)
         return entity_id
 
     def remove_entity(self, entity_id):
         """Remove an entity from the world"""
-        self.commands.append(("remove_entity", entity_id))
+        self._commands.append(("remove_entity", entity_id))
 
     def add_components(self, entity_id, components_data: dict[Type[Component], Any]):
         """Add components to an entity"""
-        self.commands.append(("add_components", entity_id, components_data))
+        self._commands.append(("add_components", entity_id, components_data))
 
     def remove_components(self, entity_id, components: list[Type[Component]]):
         """Remove components from an entity"""
-        self.commands.append(("remove_components", entity_id, components))
+        self._commands.append(("remove_components", entity_id, components))
 
     def flush(self):
         # TODO - group operations
         try:
-            for cmd, *args in self.commands:
+            for cmd, *args in self._commands:
                 if cmd == "create_entity":
                     self.world.entities.add(*args)
                 elif cmd == "remove_entity":
@@ -51,4 +51,4 @@ class CommandBuffer:
     def clear(self):
         self.world.entities.deregister_reserved_ids(self._reserved_ids)
         self._reserved_ids = []
-        self.commands = []
+        self._commands = []

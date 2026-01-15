@@ -75,7 +75,7 @@ class EventBus:
             handler (Callable[[Event], None]): The handler to remove.
         """
         if event_type in self._subscribers:
-            for weak_handler in self._subscribers[event_type][:]:
+            for weak_handler in list(self._subscribers[event_type][:]):
                 actual = weak_handler()
                 if actual is None or actual == handler:
                     self._subscribers[event_type].remove(weak_handler)
@@ -141,4 +141,4 @@ class EventBus:
 
     def handle_event_error(self, event, func, e):
         # TODO
-        raise e
+        raise

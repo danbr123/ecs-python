@@ -118,6 +118,8 @@ class EntityManager:
 
     def deregister_reserved_ids(self, ids: list[int]):
         for eid in ids:
+            if eid not in self.entities_map or self.entities_map[eid] != (None, None):
+                continue
             self.entities_map.pop(eid, None)
 
     def add(
