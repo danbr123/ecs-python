@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Type
+from typing import Type, Union
 
 import numpy as np
 
@@ -26,8 +26,8 @@ class Component(ABC):
         >>>     dtype = np.int32
     """
 
-    shape: tuple = (1,)
-    dtype: np.dtype = np.float32
+    shape: tuple[int, ...] = (1,)
+    dtype: Union[np.dtype, type[np.generic]] = np.float32
 
 
 class TagComponent(Component, ABC):
@@ -63,8 +63,12 @@ class ComponentRegistry:
         self._next_bit = 1
         self._cache: dict[frozenset[Type[Component]], int] = {}
 
-    def get_bit(self, comp_type):
+    def get_bit(self, comp_type: Type[Component]) -> int:
         """Get component bit, assign one if it doesn't have one"""
+        if not issubclass(comp_type, Component):
+            raise TypeError(
+                f"Component type {comp_type} is not a subclass of Component."
+            )
         if comp_type not in self._component_bits:
             self._component_bits[comp_type] = self._next_bit
             self._next_bit <<= 1
@@ -97,6 +101,6 @@ class ComponentRegistry:
     def sort_components(
         self, components: list[Type[Component]]
     ) -> list[Type[Component]]:
-        """Sort components according ton their associated bit and de-duplicate"""
+        """Sort components according to their associated bit and de-duplicate"""
         components = set(components)
         return sorted(components, key=lambda x: self.get_bit(x))
