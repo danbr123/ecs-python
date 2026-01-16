@@ -1,7 +1,7 @@
 from typing import Optional, Sequence, Type
 
 from .archetype import Archetype
-from .component import Component, ComponentRegistry
+from .component import Component, ComponentRegistry, TagComponent
 
 
 class Query:
@@ -92,7 +92,12 @@ class Query:
         """
         optional = optional or []
         for arch in self.matches:
-            fetch_comps = self.include + [c for c in optional if c in arch.components]
+            fetch_comps = self.include + [
+                c
+                for c in optional
+                if c in arch.components
+                if not issubclass(c, TagComponent)
+            ]
             yield arch, arch.entity_ids[: len(arch)], {
                 t: arch.storage[t][: len(arch)] for t in fetch_comps
             }
