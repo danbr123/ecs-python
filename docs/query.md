@@ -57,13 +57,17 @@ class GravitySystem(System):
         g_const = world.resources.get("G", DEFAULT_G)
 
         array_data = self.queries["planets"].gather()
+        if len(array_data["ids"]) == 0:
+            return
 
         # calculate forces using numba
         acc = calculate_gravity(array_data[Position], array_data[Mass], g_const)
 
         for arch, entities, arch_data in self.queries["planets"].fetch(
-                optional=[Velocity, Locked]):
-            if Locked not in arch.components and Velocity in arch.components:
+            optional=[Velocity, Locked]
+        ):
+            if (arch in array_data["slices"].keys() and Locked not in arch.components 
+                and Velocity in arch.components):
                 arch_data[Velocity] += acc[array_data["slices"][arch]] * dt
 
 ```

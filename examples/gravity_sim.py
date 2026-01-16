@@ -8,6 +8,13 @@ For efficiency - we use numba for the acceleration calculation.
 In a future version - it will also be used for the collision check, currently this is
 the bottleneck when collisions are enabled.
 
+Performance:
+- Currently, the simulation can handle ~2500 planets at 60FPS without
+  collisions, with a physics update frequency of 600HZ (600 per second).
+  that is 2500 * 2500 * 600 = 3,750,000,000 interactions per second.
+- Since the collision system is not optimized yet (using numpy directly) - with
+  collisions enabled the simulation can handle ~600 planets before dropping below 60FPS.
+
 How to use:
 - Install dependencies:
     - numba
@@ -47,7 +54,7 @@ from ecs import Component, Event, System, TagComponent, World
 from ecs.adapters.pygame import PygameApp
 
 DEFAULT_G = 0.66743
-PHYSICS_FREQUENCY = 600  # physics updates PER SECOND
+PHYSICS_FREQUENCY = 600  # physics updates per second
 PLANET_GROUP_SIZE = 10
 EPS = 1e-10  # minimum distance between objects - avoid infinite forces
 
@@ -160,7 +167,11 @@ class AccelerationSystem(System):
         for arch, entities, arch_data in self.queries["planets"].fetch(
             optional=[Velocity, Locked]
         ):
-            if Locked not in arch.components and Velocity in arch.components:
+            if (
+                arch in array_data["slices"].keys()
+                and Locked not in arch.components
+                and Velocity in arch.components
+            ):
                 arch_data[Velocity] += acc[array_data["slices"][arch]] * dt
 
 
@@ -248,7 +259,7 @@ class CollisionSystem(System):
                     mass[winner] * vel[winner] + mass[loser] * vel[loser]
                 ) / new_mass
                 if locked_flags[winner]:
-                    new_velocity = 0.0
+                    new_velocity = (0.0, 0.0)
                 world.set_component(winner_id, Mass, new_mass)
                 world.set_component(winner_id, Radius, new_radius)
                 world.set_component(winner_id, Velocity, new_velocity)
@@ -321,6 +332,8 @@ class SpawnerSystem(System):
             ),
             Radius: event.radius,
         }
+        if event.is_locked:
+            comps[Locked] = True
         world.cmd_buffer.create_entity(comps)
 
 
