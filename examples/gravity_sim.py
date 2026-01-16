@@ -1,3 +1,37 @@
+"""Example usage of python-ecs framework.
+
+This is an N-body gravity simulator, using the naive N^2 calculation. This demonstrates
+the usage of the ecs framework while also stress-testing it with heavy calculations.
+This example also uses the PygameApp adapter from `ecs.adapters.pygame`
+
+For efficiency - we use numba for the acceleration calculation.
+In a future version - it will also be used for the collision check, currently this is
+the bottleneck when collisions are enabled.
+
+How to use:
+- Install dependencies:
+    - numba
+    - pygame
+    - numpy <= 2.3.5  (currently required for numba)
+    - ecs-python
+- run gravity_sim.py
+
+Controls:
+- Left mouse click - spawn a single planet
+- Right mouse click - spawn a group of planets (PLANET_GROUP_SIZE - default 10)
+- C - toggle collision system
+- F - toggle FPS view
+
+Sliders:
+- Radius - change next spawned planet radius (also affects mass)
+- Gravity - gravity constant
+- Speed - simulation speed - does not decrease accuracy but affects FPS
+- DYNAMIC/LOCKED button - toggle locked flag - if locked - the next planet will be
+  locked in place and will not move. locked planets still affect the movement of other
+  planets.
+
+"""
+
 import math
 import random
 from copy import copy
@@ -13,7 +47,10 @@ from ecs import Component, Event, System, TagComponent, World
 from ecs.adapters.pygame import PygameApp
 
 DEFAULT_G = 0.66743
+PHYSICS_FREQUENCY = 600  # physics updates PER SECOND
+PLANET_GROUP_SIZE = 10
 EPS = 1e-10  # minimum distance between objects - avoid infinite forces
+
 
 # components
 
@@ -327,7 +364,7 @@ class GravitySim(PygameApp):
     MAX_TIME_SCALE = 10.0
 
     def on_start(self):
-        self.register_group("physics", 600.0)
+        self.register_group("physics", PHYSICS_FREQUENCY)
         self.register_group("cleanup", 1.0)
 
         self.world.register_system(AccelerationSystem(priority=0))
@@ -402,7 +439,7 @@ class GravitySim(PygameApp):
                     self.world.event_bus.publish_async(spawn_event)
                 else:
                     # right click - spawn X
-                    for _ in range(100):
+                    for _ in range(PLANET_GROUP_SIZE):
                         new_spawn_event = copy(spawn_event)
                         new_x = spawn_event.position[0] + (random.random() - 0.5) * 50
                         new_y = spawn_event.position[1] + (random.random() - 0.5) * 50
