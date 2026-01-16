@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
+    from .query import Query
     from .world import World
 
 
@@ -30,11 +31,12 @@ class System(ABC):
         self.priority = priority
         self.enabled = enabled
         self.name = name or self.__class__.__name__
+        self.queries: dict[str, Query] = {}
 
     def initialize(self, world: World) -> None:
         """
         Optional hook called when the system is added to the world.
-        Use this for one-time setup (resource allocation, caching, etc.).
+        Use this for one-time setup (queries, resource allocation, caching, etc.).
         """
         pass
 

@@ -62,29 +62,38 @@ class Query:
             return
         self.matches.append(arch)
 
-    def fetch(self, optional: Optional[Sequence[Component]] = None):
-        """Fetch the matched archetypes for the query
+    def fetch(self, optional: Optional[Sequence[Type[Component]]] = None):
+        """Safe way to fetch the matched archetypes for the query
 
         If optional components are provided, fetch them as well if the archetype
         has these components.
+        This function is slightly less efficient than accessing the archetypes directly
+        via `query.matches`, but it organizes and slices the data automatically,
+        removing the risk of reading uninitialized garbage data.
 
-        Returns:
-            a generator that yields tuples:
-            - entity_ids: numpy array that matches rows in the archetype to entity ids
-              for example: if `entity_ids[3] == 5` - entity 5 occupies row 3 in the
-              storage, and that row number can be used to access its data.
-            - storage_data: dictionary of {component_type: storage} where the component
-              type is one of the archetype's components, and the storage is the array
-              that contains that component data.
+        Note:
+            For higher efficiency and when using a very large number of archetype, use
+            `query.matches` to get the archetypes directly, and access their storage
+            with `archetype.storage`.
 
         Args:
             optional: list of additional component to fetch. by default, only `include`
                 components are fetched.
+
+        Yields:
+            (archetype, entity_ids, components):
+                archetype: the matched archetype
+                entity_ids: numpy array that matches rows in the archetype to entity ids
+                  for example: if `entity_ids[3] == 5` - entity 5 occupies row 3 in the
+                  storage, and that row number can be used to access its data.
+                storage_data: dictionary of {component_type: storage} where the
+                  component type is one of the archetype's components, and the storage
+                  is the array that contains that component data.
         """
         optional = optional or []
         for arch in self.matches:
             fetch_comps = self.include + [c for c in optional if c in arch.components]
-            yield arch.entity_ids[: len(arch)], {
+            yield arch, arch.entity_ids[: len(arch)], {
                 t: arch.storage[t][: len(arch)] for t in fetch_comps
             }
 

@@ -37,7 +37,7 @@ class PygameRenderSystem(System):
 
     def update(self, world: World, dt: float) -> None:
         screen = world.resources.get_as("pygame.screen", pygame.Surface)
-        for _, data in self.query.fetch(optional=[DisableRender]):
+        for _, _, data in self.query.fetch(optional=[DisableRender]):
             positions = data[Transform]
             surfaces = data[Sprite]
 
