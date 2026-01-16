@@ -37,6 +37,12 @@ class System(ABC):
         """
         Optional hook called when the system is added to the world.
         Use this for one-time setup (queries, resource allocation, caching, etc.).
+
+        Note: `System.queries` can be used to cache queries for better performance.
+        However, doing so will bound the system into a single world (as queries are
+        bound to a World).
+        To re-use the system - create a new instance, clear the query cache, or make
+        sure the same queries are not used in separate worlds.
         """
         pass
 
@@ -61,6 +67,9 @@ class System(ABC):
 
     def disable(self):
         self.enabled = False
+
+    def toggle(self):
+        self.enabled = not self.enabled
 
     def on_error(self, world: World, ex: Exception) -> None:
         raise ex
