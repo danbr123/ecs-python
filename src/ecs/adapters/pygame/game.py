@@ -43,7 +43,7 @@ class PygameApp:
         self.running = False
         self.screen: Optional[pygame.Surface] = None
         self.clock = pygame.time.Clock()
-        self.groups_config = {"default": {"interval": 0, "accumulator": 0}}
+        self.groups_config = {"default": {"interval": 1 / self.fps, "accumulator": 0}}
 
     def _setup_pygame(self):
         """Pygame initialization and world resources update."""
