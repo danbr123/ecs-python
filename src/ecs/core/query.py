@@ -1,5 +1,7 @@
 from typing import Optional, Sequence, Type
 
+import numpy as np
+
 from .archetype import Archetype
 from .component import Component, ComponentRegistry, TagComponent
 
@@ -101,6 +103,80 @@ class Query:
             yield arch, arch.entity_ids[: len(arch)], {
                 t: arch.storage[t][: len(arch)] for t in fetch_comps
             }
+
+    def gather(self, optional: Optional[Sequence[Type[TagComponent]]] = None):
+        """Gather data from all matched archetypes in a single array per component
+
+        IMPORTANT: This function returns a new array and not a view of the archetype
+            storage. to apply changes made to the array, use `result["slices"]` to
+            determine how to scatter the data back to the original archetypes.
+
+        This method can be used when a query returns multiple archetypes but the same
+        operation needs to be applied to all of them. It is particularly useful when
+        the calculation depend on data from multiple archetypes - as once the data is
+        merged any calculation can be done on single arrays.
+
+        Args:
+            optional: list of additional component to fetch. by default, only `include`.
+                unlike `Query.fetch`, thif fucntion does not allow optional components
+                that are not subclasses of TagComponent, as that creates inconsistent
+                data.
+
+        Returns:
+            dictionary of:
+                "ids": the entity_ids array from each archetype, merged into a single
+                    array.
+                "slices": dict of {Archetype: slice} where slice can be used to fetch
+                    the data related to that specific archetype from the merged arrays.
+                **components_data: for each component C (include + optional) - the
+                    value of results[C] is the merged array of all the data of that
+                    components from all the matched archetypes. For TagComponent - the
+                    values are boolean flags (1 if the component exists in that
+                    archetype, 0 if it doesn't)
+        """
+        optional = optional or []
+        for comp in optional:
+            if not issubclass(comp, TagComponent):
+                raise ValueError(
+                    f"Only subclasses of TagComponent are allowed as optional "
+                    f"components when using `Query.gather`, got {type(comp)}"
+                )
+        total_count = sum(len(arch) for arch in self.matches)
+
+        out_ids = np.empty(total_count, dtype=np.int32)
+
+        data_arrays = {}
+
+        for comp in self.include:
+            if issubclass(comp, TagComponent):
+                arr = np.ones(total_count, dtype=np.bool_)
+            else:
+                arr = np.empty(shape=((total_count,) + comp.shape), dtype=comp.dtype)
+            data_arrays[comp] = arr
+        for comp in optional:
+            arr = np.zeros(total_count, dtype=np.bool_)
+            data_arrays[comp] = arr
+
+        slices: dict[Archetype, slice] = {}
+
+        if total_count > 0:
+            idx = 0
+            for arch in self.matches:
+                arch_count = len(arch)
+                if arch_count == 0:
+                    continue
+                end = idx + arch_count
+                curr_slice = slice(idx, end)
+                slices[arch] = curr_slice
+
+                out_ids[curr_slice] = arch.entity_ids[:arch_count]
+                for comp in self.include:
+                    if not issubclass(comp, TagComponent):
+                        data_arrays[comp][curr_slice] = arch.storage[comp][:arch_count]
+                for comp in optional:
+                    data_arrays[comp][curr_slice] = comp in arch.components
+                idx = end
+        return {"ids": out_ids, "slices": slices, **data_arrays}
 
 
 class QueryManager:
