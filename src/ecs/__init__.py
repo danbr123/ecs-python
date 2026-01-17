@@ -5,6 +5,8 @@ from .core.resources import Resources
 from .core.system import System
 from .core.world import World
 
+__version__ = "0.0.1"
+
 __all__ = [
     "World",
     "Component",

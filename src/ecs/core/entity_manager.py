@@ -63,8 +63,11 @@ class EntityManager:
             return None
         elif isinstance(value, np.ndarray):
             return self._validate_array(comp_type, value)
-        if len(comp_type.shape) == 1:
+        if comp_type.shape == ():
             arr = np.array(value, dtype=comp_type.dtype)
+            return self._validate_array(comp_type, arr)
+        if len(comp_type.shape) == 1:
+            arr = np.array(value, dtype=comp_type.dtype, ndmin=1)
             return self._validate_array(comp_type, arr)
         raise ValueError(
             f"{comp_type.__name__} is multi-dimensional {comp_type.shape} "

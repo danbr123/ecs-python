@@ -94,11 +94,10 @@ class Query:
         """
         optional = optional or []
         for arch in self.matches:
-            fetch_comps = self.include + [
+            fetch_comps = [
                 c
-                for c in optional
-                if c in arch.components
-                if not issubclass(c, TagComponent)
+                for c in (*self.include, *optional)
+                if c in arch.components and not issubclass(c, TagComponent)
             ]
             yield arch, arch.entity_ids[: len(arch)], {
                 t: arch.storage[t][: len(arch)] for t in fetch_comps
