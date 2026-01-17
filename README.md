@@ -3,11 +3,11 @@ ECS framework for python, built to support efficient vectorized operations on en
 
 
 ## introduction
-Do you like video games?
+Do you like **video games**?
 
-Do you like coding?
+Do you like **coding**?
 
-Do you think Python is the superior language but was disappointed to learn that there is
+Do you think **Python** is the **superior language** but was disappointed to learn that there is
 no proper framework for writing high-performance games and simulations in python?
 
 **Well, then go learn C++, because python is not for writing games**.
@@ -40,7 +40,7 @@ components and modify it.
 Systems should generally be stateless.
 
 ### World
-The world object systems, entities, and all other ECS-related objects. Working with
+The world object manages systems, entities, and all other ECS-related objects.
 Most gameplay or simulation code should interact with the ECS through this object.
 
 ## Additional objects in this framework
@@ -74,7 +74,7 @@ Asynchronous events are queued and processed in the next update cycle (frame).
 
 ### Resources
 Dict wrapper that support type casting, namespaces and more. Can be used to store the world
-state. 
+state, and systems can access it during update. 
 
 ## Example usage
 ```python
