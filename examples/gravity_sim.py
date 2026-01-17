@@ -28,6 +28,7 @@ Controls:
 - Right mouse click - spawn a group of planets (PLANET_GROUP_SIZE - default 10)
 - C - toggle collision system
 - F - toggle FPS view
+- T - toggle trajectory view
 
 Sliders:
 - Radius - change next spawned planet radius (also affects mass)
@@ -55,9 +56,9 @@ from ecs.adapters.pygame import PygameApp
 
 DEFAULT_G = 0.66743
 PHYSICS_FREQUENCY = 600  # physics updates per second
-PLANET_GROUP_SIZE = 10
+PLANET_GROUP_SIZE = 100
 EPS = 1e-10  # minimum distance between objects - avoid infinite forces
-
+TRAJECTORY_LENGTH = 100
 
 # components
 
@@ -89,6 +90,11 @@ class Position(Component):
 class Color(Component):
     shape = (3,)  # [R, G, B]
     dtype = np.float32
+
+
+class Trajectory(Component):
+    shape = (TRAJECTORY_LENGTH, 2)
+    dtype = np.float64
 
 
 # events
@@ -309,6 +315,44 @@ class GravityRenderSystem(System):
                 )
 
 
+class TrajectoryStorageSystem(System):
+    group = "default"
+
+    def initialize(self, world: World):
+        self.queries["planets"] = world.query(include=[Position, Trajectory])
+
+    def update(self, world: World, dt: float) -> None:
+        for _, _, data in self.queries["planets"].fetch():
+            pos = data[Position]
+            traj = data[Trajectory]
+            if len(pos) == 0:
+                return
+            traj[:, :-1, :] = traj[:, 1:, :]
+            traj[:, -1, :] = pos
+
+
+class TrajectoryRenderSystem(System):
+    group = "render"
+
+    def initialize(self, world: World):
+        self.queries["trajectory"] = world.query(include=[Trajectory, Color])
+
+    def update(self, world: World, dt: float) -> None:
+        screen = world.resources.get_as("pygame.screen", pygame.Surface)
+        for _, _, data in self.queries["trajectory"].fetch():
+            traj_batch = data[Trajectory]
+            col_batch = data[Color]
+            for i in range(len(traj_batch)):
+                points, col = traj_batch[i], col_batch[i]
+                pygame.draw.lines(
+                    screen,
+                    (int(col[0]), int(col[1]), int(col[2])),
+                    False,  # closed?
+                    points,
+                    1,  # width
+                )
+
+
 class SpawnerSystem(System):
     group = "default"
 
@@ -334,6 +378,11 @@ class SpawnerSystem(System):
         }
         if event.is_locked:
             comps[Locked] = True
+        else:
+            init_trajectory = np.full(
+                (TRAJECTORY_LENGTH, 2), event.position, dtype=np.float64
+            )
+            comps[Trajectory] = init_trajectory
         world.cmd_buffer.create_entity(comps)
 
 
@@ -387,6 +436,8 @@ class GravitySim(PygameApp):
         self.world.register_system(GravityRenderSystem(priority=20))
         self.world.register_system(SpawnerSystem(priority=30))
         self.world.register_system(WorldManager(priority=30))
+        self.world.register_system(TrajectoryStorageSystem(priority=16))
+        self.world.register_system(TrajectoryRenderSystem(priority=21))
 
         # Defaults
         self.world.resources["G"] = 0.667
@@ -435,6 +486,13 @@ class GravitySim(PygameApp):
                 self.world.event_bus.publish_async(ToggleSystemEvent(CollisionSystem))
             if event.key == pygame.K_f:
                 self.show_fps = not self.show_fps
+            if event.key == pygame.K_t:
+                self.world.event_bus.publish_async(
+                    ToggleSystemEvent(TrajectoryRenderSystem)
+                )
+                self.world.event_bus.publish_async(
+                    ToggleSystemEvent(TrajectoryStorageSystem)
+                )
 
         if event.type == pygame.MOUSEBUTTONUP:
             self.drag_target = None
@@ -547,9 +605,11 @@ class GravitySim(PygameApp):
         )
 
         # stats
+        num_planets_q = self.world.query(include=[Position, Mass]).gather()
+        num_planets = len(num_planets_q["ids"])
         screen.blit(
             self.font.render(
-                f"Entities: {len(self.world.entities.entities_map)}",
+                f"Entities: {num_planets}",
                 True,
                 (200, 200, 200),
             ),
@@ -564,6 +624,15 @@ class GravitySim(PygameApp):
             (1020, 310),
         )
         screen.blit(self.font.render(col_text, True, col_color), (1230, 310))
+
+        traj_enabled = self.world.get_system(TrajectoryRenderSystem).enabled
+        traj_text = "ON" if traj_enabled else "OFF"
+        traj_color = (50, 200, 50) if traj_enabled else (200, 50, 50)
+        screen.blit(
+            self.font.render("Trajectory (T to toggle): ", True, (200, 200, 200)),
+            (1020, 340),
+        )
+        screen.blit(self.font.render(traj_text, True, traj_color), (1230, 340))
 
         if self.show_fps:
             fps = self.clock.get_fps()

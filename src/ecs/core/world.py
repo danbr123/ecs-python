@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, TypeVar
 
 from .archetype import Archetype
 from .command_buffer import CommandBuffer
@@ -10,6 +10,8 @@ from .event import EventBus
 from .query import Query, QueryManager
 from .resources import Resources
 from .system import System
+
+_SysType = TypeVar("_SysType", bound=System)
 
 
 class World:
@@ -143,7 +145,7 @@ class World:
         self._systems_by_type[type(system)] = system
         self.systems.sort(key=lambda s: s.priority)
 
-    def get_system(self, system_type: Type[System]) -> System:
+    def get_system(self, system_type: Type[_SysType]) -> _SysType:
         try:
             return self._systems_by_type.get(system_type)
         except KeyError:
