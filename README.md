@@ -1,6 +1,23 @@
 # ecs-python
 ECS framework for python, built to support efficient vectorized operations on entity components.
 
+
+## introduction
+Do you like video games?
+
+Do you like coding?
+
+Do you think Python is the superior language but was disappointed to learn that there is
+no proper framework for writing high-performance games and simulations in python?
+
+**Well, then go learn C++, because python is not for writing games**.
+
+But until you do that, you can use this package to scratch that itch. python-ecs is a 
+Data-Oriented ECS framework designed to squeeze every ounce of performance out of Python 
+using NumPy and modern memory layouts. It won't beat C++, but it will make your Python 
+games crawl just a bit more quickly.
+
+
 ## What is ECS
 Entity Component System (ECS) is a design pattern often used in games and simulations.
 Unlike inheritance, which is more intuitive but can be inefficient and has various problems,
