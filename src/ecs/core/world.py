@@ -211,3 +211,7 @@ class World:
         if entity_id not in self.entities.entities_map:
             raise ValueError(f"Entity {entity_id} does not exist")
         return self.entities.entities_map[entity_id][0]
+
+    @property
+    def entity_count(self) -> int:
+        return len(self.entities.entities_map)

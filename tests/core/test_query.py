@@ -148,9 +148,9 @@ def test_gather_structure(registry):
 
     res = q.gather()
 
-    assert len(res["ids"]) == 5
-    assert res["slices"][arch1] == slice(0, 2, None)
-    assert res["slices"][arch2] == slice(2, 5, None)
+    assert len(res.ids) == 5
+    assert res.slices[arch1] == slice(0, 2, None)
+    assert res.slices[arch2] == slice(2, 5, None)
     assert res[Position].shape == (5, 2)
 
     # Check data content (based on create_archetype filling logic)
@@ -176,8 +176,8 @@ def test_gather_optional_tags(registry):
     assert IsEnemy in res
     assert res[IsEnemy].dtype == np.bool_
 
-    s1 = res["slices"][arch_base]
-    s2 = res["slices"][arch_enemy]
+    s1 = res.slices[arch_base]
+    s2 = res.slices[arch_enemy]
 
     assert not np.any(res[IsEnemy][s1])
     assert np.all(res[IsEnemy][s2])
@@ -193,8 +193,8 @@ def test_gather_empty(registry):
     q = Query(include=[Position], exclude=None, registry=registry)
     res = q.gather()
 
-    assert len(res["ids"]) == 0
-    assert len(res["slices"]) == 0
+    assert len(res.ids) == 0
+    assert len(res.slices) == 0
     assert res[Position].shape == (0, 2)
 
 
@@ -207,7 +207,7 @@ def test_gather_includes_tags(registry):
 
     assert IsEnemy in res
     assert np.all(res[IsEnemy])
-    assert len(res["ids"]) == 5
+    assert len(res.ids) == 5
 
 
 def test_manager_get_query_caching(manager):

@@ -62,10 +62,10 @@ class AccelerationSystem(System):
 
     def update(self, world: World, dt: float):
         data = self.queries["planets"].gather()
-        if len(data["ids"]) == 0:
+        if len(data.ids) == 0:
             return
         acc = calculate_gravity(data[Position], data[Mass], G)
-        slices = data["slices"]
+        slices = data.slices
         for arch, entities, arch_data in self.queries["planets"].fetch(
             optional=[Velocity, Locked]
         ):

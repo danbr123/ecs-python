@@ -51,12 +51,12 @@ class PhysicsSystem(System):
 
     def update(self, world: World, dt: float):
         data = self.queries["p"].gather()
-        if len(data["ids"]) == 0:
+        if len(data.ids) == 0:
             return
 
         acc = calculate_gravity(data[Position], data[Mass], G)
 
-        slices = data["slices"]
+        slices = data.slices
         for arch, entities, arch_data in self.queries["p"].fetch():
             if arch in slices:
                 sl = slices[arch]

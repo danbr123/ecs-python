@@ -6,6 +6,31 @@ from .archetype import Archetype
 from .component import Component, ComponentRegistry, TagComponent
 
 
+class QueryGatherResult:
+    __slots__ = ("ids", "slices", "data")
+
+    def __init__(
+        self,
+        ids: np.ndarray,
+        slices: dict["Archetype", slice],
+        data: dict[Type[Component], np.ndarray],
+    ):
+        self.ids = ids
+        self.slices = slices
+        self.data = data
+
+    def __getitem__(self, component_type: Type[Component]) -> np.ndarray:
+        return self.data[component_type]
+
+    def __repr__(self) -> str:
+        return (
+            f"<GatherResult components={list(self.data.keys())}, count={len(self.ids)}>"
+        )
+
+    def __contains__(self, component_type: Type[Component]) -> bool:
+        return component_type in self.data
+
+
 class Query:
     def __init__(
         self,
@@ -103,7 +128,9 @@ class Query:
                 t: arch.storage[t][: len(arch)] for t in fetch_comps
             }
 
-    def gather(self, optional: Optional[Sequence[Type[TagComponent]]] = None):
+    def gather(
+        self, optional: Optional[Sequence[Type[TagComponent]]] = None
+    ) -> QueryGatherResult:
         """Gather data from all matched archetypes in a single array per component
 
         IMPORTANT: This function returns a new array and not a view of the archetype
@@ -175,7 +202,7 @@ class Query:
                 for comp in optional:
                     data_arrays[comp][curr_slice] = comp in arch.components
                 idx = end
-        return {"ids": out_ids, "slices": slices, **data_arrays}
+        return QueryGatherResult(ids=out_ids, slices=slices, data=data_arrays)
 
 
 class QueryManager:
