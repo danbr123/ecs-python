@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -35,8 +35,12 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/danbr123/ecs-python"
 
-[tool.hatch.version]
-path = "src/ecs/__init__.py"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/ecs"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/ecs/_version.py"
+
