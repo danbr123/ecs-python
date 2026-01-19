@@ -38,16 +38,16 @@ jobs:
       uses: liskin/gh-problem-matcher-wrap@e7b7beaaafa52524748b31a381160759d68d61fb
       with:
         linters: flake8
-        run: uv run flake8 --max-line-length=88 .
+        run: uv run flake8 --max-line-length=88 ./src ./tests ./examples
 
     - name: isort
       uses: liskin/gh-problem-matcher-wrap@e7b7beaaafa52524748b31a381160759d68d61fb
       with:
         linters: isort
-        run: uv run isort --profile black --check --diff .
+        run: uv run isort --profile black --check --diff  ./src ./tests ./examples
 
     - name: Black
-      run: uv run black --check --line-length 88 .
+      run: uv run black --check --line-length 88  ./src ./tests ./examples
 
     - name: Test
       if: always()
