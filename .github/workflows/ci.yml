@@ -1,4 +1,4 @@
-name: Run tests and performance benchmark
+name: Tests and performance check
 
 on:
   pull_request:
