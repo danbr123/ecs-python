@@ -51,12 +51,12 @@ import numpy as np
 import pygame
 from numba import njit, prange
 
-from ecs import Component, Event, System, TagComponent, World
-from ecs.adapters.pygame import PygameApp
+from src.ecs import Component, Event, System, TagComponent, World
+from src.ecs.adapters.pygame import PygameApp
 
 DEFAULT_G = 0.66743
 PHYSICS_FREQUENCY = 600  # physics updates per second
-PLANET_GROUP_SIZE = 100
+PLANET_GROUP_SIZE = 10
 EPS = 1e-10  # minimum distance between objects - avoid infinite forces
 TRAJECTORY_LENGTH = 100
 
@@ -219,9 +219,9 @@ class CollisionSystem(System):
             all_mass.append(data[Mass])
             all_radius.append(data[Radius])
             all_locked_flags.append(
-                np.ones(len(entities))
+                np.ones(len(entities), dtype=np.bool_)
                 if Locked in arch.components
-                else np.zeros(len(entities))
+                else np.zeros(len(entities), dtype=np.bool_)
             )
 
         if not all_ids:
@@ -254,7 +254,7 @@ class CollisionSystem(System):
                 if ids[j] in to_remove:
                     # j already collided and was removed
                     continue
-                winner, loser = (i, j) if radius[i] > radius[j] else (j, i)
+                winner, loser = (i, j) if mass[i] > mass[j] else (j, i)
                 winner_id, loser_id = (ids[winner], ids[loser])
 
                 new_mass = mass[winner] + mass[loser]
@@ -266,6 +266,12 @@ class CollisionSystem(System):
                 ) / new_mass
                 if locked_flags[winner]:
                     new_velocity = (0.0, 0.0)
+
+                # update local arrays
+                mass[winner] = new_mass
+                radius[winner] = new_radius
+                vel[winner] = new_velocity
+
                 world.set_component(winner_id, Mass, new_mass)
                 world.set_component(winner_id, Radius, new_radius)
                 world.set_component(winner_id, Velocity, new_velocity)
@@ -326,7 +332,7 @@ class TrajectoryStorageSystem(System):
             pos = data[Position]
             traj = data[Trajectory]
             if len(pos) == 0:
-                return
+                continue
             traj[:, :-1, :] = traj[:, 1:, :]
             traj[:, -1, :] = pos
 
