@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install uv
-        uv sync --locked
+        uv sync
 
     # run linters and add annotations to changed files.
     - name: flake8

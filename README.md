@@ -1,3 +1,4 @@
+![CI Status](https://github.com/danbr123/ecs-python/actions/workflows/ci.yml/badge.svg)
 # ecs-python
 ECS framework for python, built to support efficient vectorized operations on entity components.
 
