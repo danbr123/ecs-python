@@ -32,6 +32,13 @@ dev = [
   "numba"
 ]
 
+[tool.isort]
+profile = "black"
+skip = ["src/ecs/_version.py"]
+
+[tool.black]
+extend-exclude = "src/ecs/_version.py"
+
 [project.urls]
 Homepage = "https://github.com/danbr123/ecs-python"
 
