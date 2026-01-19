@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from ecs.core.archetype import Archetype
-from ecs.core.component import Component, ComponentRegistry, TagComponent
-from ecs.core.query import Query, QueryManager
+from src.ecs.core.archetype import Archetype
+from src.ecs.core.component import Component, ComponentRegistry, TagComponent
+from src.ecs.core.query import Query, QueryManager
 
 
 class Position(Component):

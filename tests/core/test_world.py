@@ -3,10 +3,10 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from ecs.core.archetype import Archetype
-from ecs.core.component import Component
-from ecs.core.system import System
-from ecs.core.world import World
+from src.ecs.core.archetype import Archetype
+from src.ecs.core.component import Component
+from src.ecs.core.system import System
+from src.ecs.core.world import World
 
 
 class Position(Component):

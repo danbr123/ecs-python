@@ -1,0 +1,63 @@
+name: Run tests and performance benchmark
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches: [ main ]
+
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install uv
+        uv sync --locked
+
+    # run linters and add annotations to changed files.
+    - name: flake8
+      uses: liskin/gh-problem-matcher-wrap@e7b7beaaafa52524748b31a381160759d68d61fb
+      with:
+        linters: flake8
+        run: uv run flake8 --max-line-length=88 .
+
+    - name: isort
+      uses: liskin/gh-problem-matcher-wrap@e7b7beaaafa52524748b31a381160759d68d61fb
+      with:
+        linters: isort
+        run: uv run isort --profile black --check --diff .
+
+    - name: Black
+      run: uv run black --check --line-length 88 .
+
+    - name: Test
+      if: always()
+      run: |
+        uv run pytest -q --disable-warnings
+
+    - name: Correctness test
+      run: |
+        uv run python -m tests.benchmark.correctness
+
+    - name: Performance benchmark
+      run: |
+        uv run python -m tests.benchmark.performance

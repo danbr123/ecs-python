@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from ecs.core.system import System
-from ecs.core.world import World
+from src.ecs.core.system import System
+from src.ecs.core.world import World
 
 
 class ConcreteSystem(System):

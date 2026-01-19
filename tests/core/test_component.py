@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ecs.core.component import Component, ComponentRegistry, TagComponent
+from src.ecs.core.component import Component, ComponentRegistry, TagComponent
 
 
 class Position(Component):

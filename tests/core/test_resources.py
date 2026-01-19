@@ -1,6 +1,6 @@
 import pytest
 
-from ecs.core.resources import Resources
+from src.ecs.core.resources import Resources
 
 
 @pytest.fixture

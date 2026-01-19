@@ -2,8 +2,8 @@ from unittest.mock import Mock, call
 
 import pytest
 
-from ecs.core.command_buffer import CommandBuffer
-from ecs.core.component import Component
+from src.ecs.core.command_buffer import CommandBuffer
+from src.ecs.core.component import Component
 
 
 class Position(Component):

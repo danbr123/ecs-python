@@ -3,8 +3,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from ecs.core.command_buffer import CommandBuffer
-from ecs.core.event import Event, EventBus
+from src.ecs.core.command_buffer import CommandBuffer
+from src.ecs.core.event import Event, EventBus
 
 
 class DamageEvent(Event):

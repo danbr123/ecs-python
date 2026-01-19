@@ -3,8 +3,8 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from ecs.core.component import Component, ComponentRegistry, TagComponent
-from ecs.core.entity_manager import EntityManager, PendingEntityException
+from src.ecs.core.component import Component, ComponentRegistry, TagComponent
+from src.ecs.core.entity_manager import EntityManager, PendingEntityException
 
 
 class Position(Component):

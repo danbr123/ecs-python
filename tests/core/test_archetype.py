@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from ecs.core.archetype import Archetype
-from ecs.core.component import Component, TagComponent
+from src.ecs.core.archetype import Archetype
+from src.ecs.core.component import Component, TagComponent
 
 
 class Position(Component):
