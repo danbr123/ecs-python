@@ -46,7 +46,7 @@ class PygameApp:
         self.groups_config = {"default": {"interval": 1 / self.fps, "accumulator": 0}}
 
     def _setup_pygame(self):
-        """Pygame initialization and world resources update."""
+        # Pygame initialization and world resources update.
         pygame.init()
         self.screen = pygame.display.set_mode(self.resolution)
         pygame.display.set_caption(self.title)

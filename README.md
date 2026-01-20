@@ -98,7 +98,7 @@ class MovementSystem(System):
         self.query = world.query(include=[PositionComponent, VelocityComponent])
 
     def update(self, world, dt):
-        for _, arch_data in self.query.fetch():
+        for _, _, arch_data in self.query.fetch():
             positions = arch_data[PositionComponent]
             velocities = arch_data[VelocityComponent]
             positions += dt * velocities
